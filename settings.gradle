@@ -1,0 +1,10 @@
+rootProject.name = 'safer'
+
+// Cada módulo é um microsserviço Spring Boot independente (build, banco e contêiner próprios).
+// Nenhum módulo depende de outro: a comunicação é só por HTTP (via Eureka) ou RabbitMQ.
+include 'discovery-server'
+include 'api-gateway'
+include 'usuarios-service'
+include 'ocorrencias-service'
+include 'geocodificacao-service'
+include 'notificacoes-service'

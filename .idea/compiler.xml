@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="21" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="safer.api-gateway" options="-parameters" />
+      <module name="safer.api-gateway.main" options="-parameters" />
+      <module name="safer.api-gateway.test" options="-parameters" />
+      <module name="safer.discovery-server" options="-parameters" />
+      <module name="safer.discovery-server.main" options="-parameters" />
+      <module name="safer.discovery-server.test" options="-parameters" />
+      <module name="safer.geocodificacao-service" options="-parameters" />
+      <module name="safer.geocodificacao-service.main" options="-parameters" />
+      <module name="safer.geocodificacao-service.test" options="-parameters" />
+      <module name="safer.notificacoes-service" options="-parameters" />
+      <module name="safer.notificacoes-service.main" options="-parameters" />
+      <module name="safer.notificacoes-service.test" options="-parameters" />
+      <module name="safer.ocorrencias-service" options="-parameters" />
+      <module name="safer.ocorrencias-service.main" options="-parameters" />
+      <module name="safer.ocorrencias-service.test" options="-parameters" />
+      <module name="safer.usuarios-service" options="-parameters" />
+      <module name="safer.usuarios-service.main" options="-parameters" />
+      <module name="safer.usuarios-service.test" options="-parameters" />
+    </option>
+  </component>
+</project>

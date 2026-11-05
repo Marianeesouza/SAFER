@@ -1,0 +1,44 @@
+plugins {
+	id 'org.springframework.boot' version '4.1.2' apply false
+	id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+// Configuração comum a todos os serviços. Dependências específicas ficam em cada módulo.
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'org.springframework.boot'
+	apply plugin: 'io.spring.dependency-management'
+
+	group = 'ufrpe.br.safer'
+	version = '0.0.1-SNAPSHOT'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	repositories {
+		mavenCentral()
+	}
+
+	dependencyManagement {
+		imports {
+			mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.4"
+		}
+	}
+
+	dependencies {
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	}
+
+	// Só o jar executável (bootJar) interessa; evita o "-plain.jar" na imagem Docker.
+	tasks.named('jar') {
+		enabled = false
+	}
+
+	tasks.withType(Test).configureEach {
+		useJUnitPlatform()
+	}
+}

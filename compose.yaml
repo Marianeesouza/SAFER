@@ -1,0 +1,152 @@
+# Infraestrutura + serviços do SAFER.
+#   docker compose up --build                         # tudo, exceto Nominatim local
+#   docker compose --profile nominatim up --build     # inclui o Nominatim (precisa de um .osm.pbf, ver abaixo)
+#   docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db rabbitmq mailhog
+#       -> só a infraestrutura, para rodar os serviços pela IDE (portas publicadas abaixo)
+#
+# Valores abaixo são APENAS para desenvolvimento. Em produção, defina os segredos por variável
+# de ambiente (arquivo .env, fora do controle de versão).
+
+x-banco: &banco
+  image: postgres:17
+  environment: &banco-env
+    POSTGRES_USER: safer
+    POSTGRES_PASSWORD: safer
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U safer"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-servico: &servico
+  environment: &servico-env
+    EUREKA_URL: http://discovery-server:8761/eureka
+    DB_USER: safer
+    DB_PASSWORD: safer
+
+services:
+  # ---------- Bancos (um por serviço; nenhum serviço acessa o banco do outro) ----------
+  usuarios-db:
+    <<: *banco
+    environment:
+      <<: *banco-env
+      POSTGRES_DB: usuarios_db
+    ports: ["5433:5432"]
+    volumes: [usuarios-data:/var/lib/postgresql/data]
+
+  ocorrencias-db:
+    <<: *banco
+    environment:
+      <<: *banco-env
+      POSTGRES_DB: ocorrencias_db
+    ports: ["5434:5432"]
+    volumes: [ocorrencias-data:/var/lib/postgresql/data]
+
+  notificacoes-db:
+    <<: *banco
+    environment:
+      <<: *banco-env
+      POSTGRES_DB: notificacoes_db
+    ports: ["5435:5432"]
+    volumes: [notificacoes-data:/var/lib/postgresql/data]
+
+  geocodificacao-db:
+    <<: *banco
+    environment:
+      <<: *banco-env
+      POSTGRES_DB: geocodificacao_db
+    ports: ["5436:5432"]
+    volumes: [geocodificacao-data:/var/lib/postgresql/data]
+
+  # ---------- Mensageria, e-mail de teste e geocodificação ----------
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # painel: guest / guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # interface web com os e-mails enviados
+
+  # Opcional. Sem ele, geocodificacao-service usa o Nominatim público (NOMINATIM_URL).
+  # Coloque um extrato em ./nominatim-data/region.osm.pbf (ex.: Geofabrik, Nordeste do Brasil).
+  nominatim:
+    profiles: ["nominatim"]
+    image: mediagis/nominatim:4.5
+    environment:
+      PBF_PATH: /nominatim-data/region.osm.pbf
+    volumes:
+      - ./nominatim-data:/nominatim-data:ro
+      - nominatim-db:/var/lib/postgresql/16/main
+    ports: ["8088:8080"]
+    shm_size: 1g
+
+  # ---------- Infraestrutura da arquitetura ----------
+  discovery-server:
+    build: { context: ., args: { MODULE: discovery-server } }
+    ports: ["8761:8761"]
+
+  api-gateway:
+    build: { context: ., args: { MODULE: api-gateway } }
+    <<: *servico
+    ports: ["8080:8080"]
+    depends_on: [discovery-server]
+
+  # ---------- Serviços de negócio ----------
+  usuarios-service:
+    build: { context: ., args: { MODULE: usuarios-service } }
+    environment:
+      <<: *servico-env
+      DB_URL: jdbc:postgresql://usuarios-db:5432/usuarios_db
+    depends_on:
+      usuarios-db: { condition: service_healthy }
+      discovery-server: { condition: service_started }
+
+  ocorrencias-service:
+    build: { context: ., args: { MODULE: ocorrencias-service } }
+    environment:
+      <<: *servico-env
+      DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      ocorrencias-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      discovery-server: { condition: service_started }
+
+  geocodificacao-service:
+    build: { context: ., args: { MODULE: geocodificacao-service } }
+    environment:
+      <<: *servico-env
+      DB_URL: jdbc:postgresql://geocodificacao-db:5432/geocodificacao_db
+      NOMINATIM_URL: ${NOMINATIM_URL:-https://nominatim.openstreetmap.org}
+    depends_on:
+      geocodificacao-db: { condition: service_healthy }
+      discovery-server: { condition: service_started }
+
+  notificacoes-service:
+    build: { context: ., args: { MODULE: notificacoes-service } }
+    environment:
+      <<: *servico-env
+      DB_URL: jdbc:postgresql://notificacoes-db:5432/notificacoes_db
+      RABBITMQ_HOST: rabbitmq
+      MAIL_HOST: mailhog
+    depends_on:
+      notificacoes-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      mailhog: { condition: service_started }
+      discovery-server: { condition: service_started }
+
+volumes:
+  usuarios-data:
+  ocorrencias-data:
+  notificacoes-data:
+  geocodificacao-data:
+  nominatim-db:
