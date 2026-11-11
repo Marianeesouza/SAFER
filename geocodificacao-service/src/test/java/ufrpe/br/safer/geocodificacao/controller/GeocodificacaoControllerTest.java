@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import ufrpe.br.safer.geocodificacao.adapter.ProvedorIndisponivelException;
+import ufrpe.br.safer.geocodificacao.config.CampusConfig;
+import ufrpe.br.safer.geocodificacao.config.MapConfig;
 import ufrpe.br.safer.geocodificacao.model.Coordinates;
 import ufrpe.br.safer.geocodificacao.model.Location;
 import ufrpe.br.safer.geocodificacao.service.GeocodificacaoService;
@@ -26,7 +28,10 @@ class GeocodificacaoControllerTest {
 
 	@BeforeEach
 	void preparar() {
-		mvc = MockMvcBuilders.standaloneSetup(new GeocodificacaoController(service))
+		GeocodificacaoController controller = new GeocodificacaoController(service,
+				new MapConfig("http://tiles/{z}/{x}/{y}.png", "© Test", 18),
+				new CampusConfig(-8.017611, -34.949472, 1200));
+		mvc = MockMvcBuilders.standaloneSetup(controller)
 				.setControllerAdvice(new ErrorHandler())
 				.build();
 	}
@@ -67,6 +72,30 @@ class GeocodificacaoControllerTest {
 
 		mvc.perform(get("/geocoding/address").param("latitude", "-8").param("longitude", "-34"))
 				.andExpect(status().isServiceUnavailable());
+	}
+
+	@Test
+	void returnsConfiguredMapSettings() throws Exception {
+		mvc.perform(get("/geocoding/map/config"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.urlTemplate").value("http://tiles/{z}/{x}/{y}.png"))
+				.andExpect(jsonPath("$.attribution").value("© Test"))
+				.andExpect(jsonPath("$.maxZoom").value(18));
+	}
+
+	@Test
+	void campusCheckAnswersInsideAndOutside() throws Exception {
+		mvc.perform(get("/geocoding/campus/validate").param("latitude", "-8.017611").param("longitude", "-34.949472"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.insideCampus").value(true));
+		mvc.perform(get("/geocoding/campus/validate").param("latitude", "-8.0").param("longitude", "-34.9"))
+				.andExpect(jsonPath("$.insideCampus").value(false));
+	}
+
+	@Test
+	void campusCheckWithInvalidLongitudeReturns400() throws Exception {
+		mvc.perform(get("/geocoding/campus/validate").param("latitude", "0").param("longitude", "181"))
+				.andExpect(status().isBadRequest());
 	}
 
 }

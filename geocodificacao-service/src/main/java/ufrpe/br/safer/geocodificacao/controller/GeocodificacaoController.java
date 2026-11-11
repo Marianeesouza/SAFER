@@ -16,19 +16,28 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import ufrpe.br.safer.geocodificacao.config.CampusConfig;
+import ufrpe.br.safer.geocodificacao.config.MapConfig;
 import ufrpe.br.safer.geocodificacao.model.Coordinates;
 import ufrpe.br.safer.geocodificacao.model.Location;
 import ufrpe.br.safer.geocodificacao.service.GeocodificacaoService;
 
 @RestController
 @RequestMapping("/geocoding")
-@Tag(name = "Geocoding", description = "Conversion between addresses and coordinates")
+@Tag(name = "Geocoding", description = "Addresses, coordinates, map settings and campus check")
 public class GeocodificacaoController {
 
-	private final GeocodificacaoService service;
+	public record CampusValidation(boolean insideCampus) {
+	}
 
-	public GeocodificacaoController(GeocodificacaoService service) {
+	private final GeocodificacaoService service;
+	private final MapConfig mapConfig;
+	private final CampusConfig campusConfig;
+
+	public GeocodificacaoController(GeocodificacaoService service, MapConfig mapConfig, CampusConfig campusConfig) {
 		this.service = service;
+		this.mapConfig = mapConfig;
+		this.campusConfig = campusConfig;
 	}
 
 	@GetMapping("/coordinates")
@@ -58,6 +67,24 @@ public class GeocodificacaoController {
 		return service.obterEndereco(new Coordinates(latitude, longitude))
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
 						"No address found for the coordinates"));
+	}
+
+	@GetMapping("/map/config")
+	@Operation(summary = "Gets the settings used to render the map")
+	public MapConfig mapConfig() {
+		return mapConfig;
+	}
+
+	@GetMapping("/campus/validate")
+	@Operation(summary = "Checks whether a point is inside the campus")
+	@ApiResponse(responseCode = "200", description = "Check done (the body says whether the point is inside)")
+	@ApiResponse(responseCode = "400", description = "Coordinates missing or outside the valid range")
+	public CampusValidation validateCampus(
+			@Parameter(description = "Latitude in decimal degrees", example = "-8.017611")
+			@RequestParam @NotNull @DecimalMin("-90") @DecimalMax("90") Double latitude,
+			@Parameter(description = "Longitude in decimal degrees", example = "-34.949472")
+			@RequestParam @NotNull @DecimalMin("-180") @DecimalMax("180") Double longitude) {
+		return new CampusValidation(campusConfig.contains(new Coordinates(latitude, longitude)));
 	}
 
 }
