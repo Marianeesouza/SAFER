@@ -39,9 +39,13 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 				return Optional.empty();
 			}
 			Lugar lugar = lugares.get(0);
+			if (lugar.lat() == null || lugar.lon() == null || lugar.display_name() == null) {
+				throw new ProvedorIndisponivelException(new IllegalStateException("Incomplete Nominatim response"));
+			}
+			// Número malformado em lat/lon: resposta inválida do provedor, tratada como indisponibilidade.
 			Coordinates coordenadas = new Coordinates(Double.parseDouble(lugar.lat()), Double.parseDouble(lugar.lon()));
 			return Optional.of(new Location(coordenadas, lugar.display_name()));
-		} catch (RestClientException e) {
+		} catch (RestClientException | IllegalArgumentException e) {
 			throw new ProvedorIndisponivelException(e);
 		}
 	}

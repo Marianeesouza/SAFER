@@ -35,7 +35,7 @@ class GeocodificacaoServiceTest {
 		when(cache.findByChave("endereco:ufrpe recife"))
 				.thenReturn(Optional.of(new CacheGeocodificacao("endereco:ufrpe recife", ufrpe, "UFRPE, Recife")));
 
-		Optional<Location> r = service.obterCoordenadas("  UFRPE   Recife ");
+		Optional<Location> r = service.obterCoordenadas("  UFRPE \t Recife ");
 
 		assertEquals(ufrpe, r.orElseThrow().coordinates());
 		verifyNoInteractions(provedor);

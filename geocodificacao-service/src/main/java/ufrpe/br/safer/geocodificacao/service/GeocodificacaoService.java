@@ -6,12 +6,14 @@ import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
 import ufrpe.br.safer.geocodificacao.adapter.ProvedorGeocodificacao;
 import ufrpe.br.safer.geocodificacao.model.CacheGeocodificacao;
 import ufrpe.br.safer.geocodificacao.model.Coordinates;
 import ufrpe.br.safer.geocodificacao.model.Location;
 import ufrpe.br.safer.geocodificacao.repository.CacheGeocodificacaoRepository;
 
+@Slf4j
 @Service
 public class GeocodificacaoService {
 
@@ -24,7 +26,7 @@ public class GeocodificacaoService {
 	}
 
 	public Optional<Location> obterCoordenadas(String endereco) {
-		String chave = "endereco:" + endereco.strip().replaceAll("\s+", " ").toLowerCase(Locale.ROOT);
+		String chave = "endereco:" + endereco.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
 		Optional<CacheGeocodificacao> emCache = cache.findByChave(chave);
 		if (emCache.isPresent()) {
 			return emCache.map(c -> new Location(c.getCoordenadas(), c.getEndereco()));
@@ -50,7 +52,7 @@ public class GeocodificacaoService {
 		try {
 			cache.save(new CacheGeocodificacao(chave, localizacao.coordinates(), localizacao.address()));
 		} catch (DataIntegrityViolationException e) {
-			// Outra requisição gravou a mesma consulta ao mesmo tempo; o resultado continua válido.
+			log.warn("Result not cached for key '{}': {}", chave, e.getMostSpecificCause().getMessage());
 		}
 	}
 

@@ -52,6 +52,14 @@ class NominatimAdapterTest {
 	}
 
 	@Test
+	void respostaIncompletaViraProvedorIndisponivel() {
+		servidor.expect(requestTo(org.hamcrest.Matchers.startsWith("http://nominatim.test/search")))
+				.andRespond(withSuccess("[{\"display_name\": \"Sem coordenadas\"}]", MediaType.APPLICATION_JSON));
+
+		assertThrows(ProvedorIndisponivelException.class, () -> adapter.buscarPorEndereco("x"));
+	}
+
+	@Test
 	void erroDoProvedorViraProvedorIndisponivel() {
 		servidor.expect(requestTo(org.hamcrest.Matchers.startsWith("http://nominatim.test/search")))
 				.andRespond(withServerError());

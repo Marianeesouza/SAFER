@@ -62,6 +62,14 @@ class GeocodificacaoControllerTest {
 	}
 
 	@Test
+	void latitudeNaNRetorna400() throws Exception {
+		mvc.perform(get("/geocoding/address").param("latitude", "NaN").param("longitude", "0"))
+				.andExpect(status().isBadRequest());
+		mvc.perform(get("/geocoding/campus/validate").param("latitude", "NaN").param("longitude", "0"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	void parametroAusenteRetorna400() throws Exception {
 		mvc.perform(get("/geocoding/coordinates")).andExpect(status().isBadRequest());
 	}
