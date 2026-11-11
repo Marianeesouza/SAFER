@@ -39,7 +39,7 @@ public class CacheGeocodificacao {
 	@Column(nullable = false)
 	private LocalDateTime criadoEm;
 
-	public CacheGeocodificacao(String chave, Coordenadas coordenadas, String endereco) {
+	public CacheGeocodificacao(String chave, Coordinates coordenadas, String endereco) {
 		this.chave = chave;
 		this.latitude = coordenadas.latitude();
 		this.longitude = coordenadas.longitude();
@@ -47,8 +47,8 @@ public class CacheGeocodificacao {
 		this.criadoEm = LocalDateTime.now();
 	}
 
-	public Coordenadas getCoordenadas() {
-		return new Coordenadas(latitude, longitude);
+	public Coordinates getCoordenadas() {
+		return new Coordinates(latitude, longitude);
 	}
 
 }

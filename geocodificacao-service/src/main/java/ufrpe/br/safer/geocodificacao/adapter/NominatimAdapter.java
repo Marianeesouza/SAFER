@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import ufrpe.br.safer.geocodificacao.model.Coordenadas;
-import ufrpe.br.safer.geocodificacao.model.Localizacao;
+import ufrpe.br.safer.geocodificacao.model.Coordinates;
+import ufrpe.br.safer.geocodificacao.model.Location;
 
 @Component
 public class NominatimAdapter implements ProvedorGeocodificacao {
@@ -24,7 +24,7 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 	}
 
 	@Override
-	public Optional<Localizacao> buscarPorEndereco(String endereco) {
+	public Optional<Location> buscarPorEndereco(String endereco) {
 		try {
 			List<Lugar> lugares = http.get()
 					.uri(u -> u.path("/search")
@@ -39,15 +39,15 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 				return Optional.empty();
 			}
 			Lugar lugar = lugares.get(0);
-			Coordenadas coordenadas = new Coordenadas(Double.parseDouble(lugar.lat()), Double.parseDouble(lugar.lon()));
-			return Optional.of(new Localizacao(coordenadas, lugar.display_name()));
+			Coordinates coordenadas = new Coordinates(Double.parseDouble(lugar.lat()), Double.parseDouble(lugar.lon()));
+			return Optional.of(new Location(coordenadas, lugar.display_name()));
 		} catch (RestClientException e) {
 			throw new ProvedorIndisponivelException(e);
 		}
 	}
 
 	@Override
-	public Optional<Localizacao> buscarPorCoordenadas(Coordenadas coordenadas) {
+	public Optional<Location> buscarPorCoordenadas(Coordinates coordenadas) {
 		try {
 			Lugar lugar = http.get()
 					.uri(u -> u.path("/reverse")
@@ -62,7 +62,7 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 			if (lugar == null || lugar.display_name() == null) {
 				return Optional.empty();
 			}
-			return Optional.of(new Localizacao(coordenadas, lugar.display_name()));
+			return Optional.of(new Location(coordenadas, lugar.display_name()));
 		} catch (RestClientException e) {
 			throw new ProvedorIndisponivelException(e);
 		}

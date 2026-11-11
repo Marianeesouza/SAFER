@@ -2,13 +2,13 @@ package ufrpe.br.safer.geocodificacao.adapter;
 
 import java.util.Optional;
 
-import ufrpe.br.safer.geocodificacao.model.Coordenadas;
-import ufrpe.br.safer.geocodificacao.model.Localizacao;
+import ufrpe.br.safer.geocodificacao.model.Coordinates;
+import ufrpe.br.safer.geocodificacao.model.Location;
 
 public interface ProvedorGeocodificacao {
 
-	Optional<Localizacao> buscarPorEndereco(String endereco);
+	Optional<Location> buscarPorEndereco(String endereco);
 
-	Optional<Localizacao> buscarPorCoordenadas(Coordenadas coordenadas);
+	Optional<Location> buscarPorCoordenadas(Coordinates coordenadas);
 
 }

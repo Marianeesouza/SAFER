@@ -15,8 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-import ufrpe.br.safer.geocodificacao.model.Coordenadas;
-import ufrpe.br.safer.geocodificacao.model.Localizacao;
+import ufrpe.br.safer.geocodificacao.model.Coordinates;
+import ufrpe.br.safer.geocodificacao.model.Location;
 
 class NominatimAdapterTest {
 
@@ -37,10 +37,10 @@ class NominatimAdapterTest {
 						[{"place_id": 1, "lat": "-8.0176", "lon": "-34.9495", "display_name": "UFRPE, Recife"}]
 						""", MediaType.APPLICATION_JSON));
 
-		Optional<Localizacao> r = adapter.buscarPorEndereco("UFRPE");
+		Optional<Location> r = adapter.buscarPorEndereco("UFRPE");
 
-		assertEquals(new Coordenadas(-8.0176, -34.9495), r.orElseThrow().coordenadas());
-		assertEquals("UFRPE, Recife", r.get().endereco());
+		assertEquals(new Coordinates(-8.0176, -34.9495), r.orElseThrow().coordinates());
+		assertEquals("UFRPE, Recife", r.get().address());
 	}
 
 	@Test
@@ -48,7 +48,7 @@ class NominatimAdapterTest {
 		servidor.expect(requestTo(org.hamcrest.Matchers.startsWith("http://nominatim.test/reverse")))
 				.andRespond(withSuccess("{\"error\": \"Unable to geocode\"}", MediaType.APPLICATION_JSON));
 
-		assertTrue(adapter.buscarPorCoordenadas(new Coordenadas(0, 0)).isEmpty());
+		assertTrue(adapter.buscarPorCoordenadas(new Coordinates(0, 0)).isEmpty());
 	}
 
 	@Test

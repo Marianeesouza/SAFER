@@ -18,8 +18,8 @@ import org.mockito.ArgumentCaptor;
 import ufrpe.br.safer.geocodificacao.adapter.ProvedorGeocodificacao;
 import ufrpe.br.safer.geocodificacao.adapter.ProvedorIndisponivelException;
 import ufrpe.br.safer.geocodificacao.model.CacheGeocodificacao;
-import ufrpe.br.safer.geocodificacao.model.Coordenadas;
-import ufrpe.br.safer.geocodificacao.model.Localizacao;
+import ufrpe.br.safer.geocodificacao.model.Coordinates;
+import ufrpe.br.safer.geocodificacao.model.Location;
 import ufrpe.br.safer.geocodificacao.repository.CacheGeocodificacaoRepository;
 
 class GeocodificacaoServiceTest {
@@ -28,23 +28,23 @@ class GeocodificacaoServiceTest {
 	private final CacheGeocodificacaoRepository cache = mock(CacheGeocodificacaoRepository.class);
 	private final GeocodificacaoService service = new GeocodificacaoService(provedor, cache);
 
-	private final Coordenadas ufrpe = new Coordenadas(-8.017611, -34.949472);
+	private final Coordinates ufrpe = new Coordinates(-8.017611, -34.949472);
 
 	@Test
 	void acertoNoCacheNaoConsultaOProvedor() {
 		when(cache.findByChave("endereco:ufrpe recife"))
 				.thenReturn(Optional.of(new CacheGeocodificacao("endereco:ufrpe recife", ufrpe, "UFRPE, Recife")));
 
-		Optional<Localizacao> r = service.obterCoordenadas("  UFRPE   Recife ");
+		Optional<Location> r = service.obterCoordenadas("  UFRPE   Recife ");
 
-		assertEquals(ufrpe, r.orElseThrow().coordenadas());
+		assertEquals(ufrpe, r.orElseThrow().coordinates());
 		verifyNoInteractions(provedor);
 	}
 
 	@Test
 	void faltaNoCacheConsultaOProvedorEGravaOResultado() {
 		when(cache.findByChave("endereco:ufrpe")).thenReturn(Optional.empty());
-		when(provedor.buscarPorEndereco("UFRPE")).thenReturn(Optional.of(new Localizacao(ufrpe, "UFRPE, Recife")));
+		when(provedor.buscarPorEndereco("UFRPE")).thenReturn(Optional.of(new Location(ufrpe, "UFRPE, Recife")));
 
 		service.obterCoordenadas("UFRPE");
 
@@ -68,11 +68,11 @@ class GeocodificacaoServiceTest {
 		when(cache.findByChave("coordenadas:-8.01761,-34.94947"))
 				.thenReturn(Optional.of(new CacheGeocodificacao("x", ufrpe, "UFRPE, Recife")));
 
-		Coordenadas parecida = new Coordenadas(-8.017612, -34.949471);
-		Localizacao r = service.obterEndereco(parecida).orElseThrow();
+		Coordinates parecida = new Coordinates(-8.017612, -34.949471);
+		Location r = service.obterEndereco(parecida).orElseThrow();
 
-		assertEquals("UFRPE, Recife", r.endereco());
-		assertEquals(parecida, r.coordenadas());
+		assertEquals("UFRPE, Recife", r.address());
+		assertEquals(parecida, r.coordinates());
 	}
 
 	@Test
