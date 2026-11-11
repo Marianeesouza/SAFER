@@ -19,6 +19,9 @@ import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.StatusOcorrenciaAlteradoEvent;
+import ufrpe.br.safer.ocorrencias.model.Coordenadas;
+import ufrpe.br.safer.ocorrencias.model.DadosComunicante;
+import ufrpe.br.safer.ocorrencias.model.DadosLocalizacao;
 import ufrpe.br.safer.ocorrencias.model.HistoricoOcorrencia;
 import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
@@ -60,17 +63,28 @@ public class OcorrenciasService {
 
         LocalDateTime agora = LocalDateTime.now();
 
+        DadosComunicante comunicante = DadosComunicante.builder()
+                .nome(dto.comunicante().nome().trim())
+                .email(dto.comunicante().email().trim())
+                .telefone(dto.comunicante().telefone())
+                .relacaoUfrpe(dto.comunicante().relacaoUfrpe())
+                .build();
+
+        Coordenadas coordenadas = (lat != null && lng != null)
+                ? new Coordenadas(lat, lng)
+                : null;
+
+        DadosLocalizacao localizacao = DadosLocalizacao.builder()
+                .endereco(dto.localizacao().endereco().trim())
+                .coordenadas(coordenadas)
+                .build();
+
         Ocorrencia ocorrencia = Ocorrencia.builder()
                 .protocolo(gerarProtocoloUnico())
                 .usuarioId(dto.usuarioId())
-                .comunicanteNome(dto.comunicante().nome().trim())
-                .comunicanteEmail(dto.comunicante().email().trim())
-                .comunicanteTelefone(dto.comunicante().telefone())
-                .comunicanteRelacaoUfrpe(dto.comunicante().relacaoUfrpe())
+                .comunicante(comunicante)
                 .descricaoAnimal(dto.descricaoAnimal().trim())
-                .latitude(lat)
-                .longitude(lng)
-                .endereco(dto.localizacao().endereco().trim())
+                .localizacao(localizacao)
                 .status(StatusOcorrencia.EM_ABERTO)
                 .criadoEm(agora)
                 .atualizadoEm(agora)
@@ -82,10 +96,10 @@ public class OcorrenciasService {
         eventPublisher.publicarOcorrenciaRegistrada(new OcorrenciaRegistradaEvent(
                 salva.getId(),
                 salva.getProtocolo(),
-                salva.getComunicanteNome(),
-                salva.getComunicanteEmail(),
+                salva.getComunicante().getNome(),
+                salva.getComunicante().getEmail(),
                 salva.getDescricaoAnimal(),
-                salva.getEndereco(),
+                salva.getLocalizacao().getEndereco(),
                 salva.getStatus(),
                 salva.getCriadoEm()
         ));
@@ -112,7 +126,7 @@ public class OcorrenciasService {
         eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
-                ocorrencia.getComunicanteEmail(),
+                ocorrencia.getComunicante().getEmail(),
                 StatusOcorrencia.EM_ABERTO,
                 StatusOcorrencia.EM_ATENDIMENTO,
                 analistaId,
@@ -154,7 +168,7 @@ public class OcorrenciasService {
         eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
-                ocorrencia.getComunicanteEmail(),
+                ocorrencia.getComunicante().getEmail(),
                 statusAtual,
                 novoStatus,
                 dto.analistaId(),
@@ -185,7 +199,7 @@ public class OcorrenciasService {
         eventPublisher.publicarOcorrenciaCancelada(new OcorrenciaCanceladaEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
-                ocorrencia.getComunicanteEmail(),
+                ocorrencia.getComunicante().getEmail(),
                 dto.usuarioId(),
                 justificativa,
                 agora

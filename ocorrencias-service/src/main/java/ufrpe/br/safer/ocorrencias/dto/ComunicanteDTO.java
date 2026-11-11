@@ -22,11 +22,15 @@ public record ComunicanteDTO(
         String relacaoUfrpe
 ) {
     public static ComunicanteDTO fromEntity(Ocorrencia o) {
+        var c = o.getComunicante();
+        if (c == null) {
+            return null;
+        }
         return new ComunicanteDTO(
-                o.getComunicanteNome(),
-                o.getComunicanteEmail(),
-                o.getComunicanteTelefone(),
-                o.getComunicanteRelacaoUfrpe()
+                c.getNome(),
+                c.getEmail(),
+                c.getTelefone(),
+                c.getRelacaoUfrpe()
         );
     }
 }

@@ -21,6 +21,9 @@ import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.StatusOcorrenciaAlteradoEvent;
+import ufrpe.br.safer.ocorrencias.model.Coordenadas;
+import ufrpe.br.safer.ocorrencias.model.DadosComunicante;
+import ufrpe.br.safer.ocorrencias.model.DadosLocalizacao;
 import ufrpe.br.safer.ocorrencias.model.HistoricoOcorrencia;
 import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
@@ -347,14 +350,17 @@ class OcorrenciasServiceTest {
                 .id(id)
                 .protocolo(protocolo)
                 .usuarioId(usuarioId)
-                .comunicanteNome("Fulano")
-                .comunicanteEmail("fulano@ufrpe.br")
-                .comunicanteTelefone("81999999999")
-                .comunicanteRelacaoUfrpe("Aluno")
+                .comunicante(DadosComunicante.builder()
+                        .nome("Fulano")
+                        .email("fulano@ufrpe.br")
+                        .telefone("81999999999")
+                        .relacaoUfrpe("Aluno")
+                        .build())
                 .descricaoAnimal("Gato ferido")
-                .latitude(-8.0163)
-                .longitude(-34.9501)
-                .endereco("Campus")
+                .localizacao(DadosLocalizacao.builder()
+                        .endereco("Campus")
+                        .coordenadas(new Coordenadas(-8.0163, -34.9501))
+                        .build())
                 .status(status)
                 .criadoEm(LocalDateTime.now())
                 .atualizadoEm(LocalDateTime.now())

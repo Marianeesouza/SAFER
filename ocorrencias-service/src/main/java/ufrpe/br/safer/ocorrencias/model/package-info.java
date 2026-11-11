@@ -1,4 +1,5 @@
 /**
- * Entidades de dominio: Ocorrencia, HistoricoOcorrencia, StatusOcorrencia, dados do comunicante e da localizacao.
+ * Entidades e objetos de valor de dominio: Ocorrencia, HistoricoOcorrencia, StatusOcorrencia,
+ * e agregados embutidos DadosComunicante, DadosLocalizacao e Coordenadas.
  */
 package ufrpe.br.safer.ocorrencias.model;

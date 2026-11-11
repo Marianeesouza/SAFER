@@ -20,6 +20,15 @@ public record LocalizacaoDTO(
         String endereco
 ) {
     public static LocalizacaoDTO fromEntity(Ocorrencia o) {
-        return new LocalizacaoDTO(o.getLatitude(), o.getLongitude(), o.getEndereco());
+        var loc = o.getLocalizacao();
+        if (loc == null) {
+            return null;
+        }
+        var coord = loc.getCoordenadas();
+        return new LocalizacaoDTO(
+                coord != null ? coord.getLatitude() : null,
+                coord != null ? coord.getLongitude() : null,
+                loc.getEndereco()
+        );
     }
 }
