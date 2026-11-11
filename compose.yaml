@@ -103,6 +103,7 @@ services:
       DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
       RABBITMQ_HOST: rabbitmq
       SAFER_SERVICES_GEOCODIFICACAO_URL: http://geocodificacao-service:8083
+    ports: ["8082:8082"]
     depends_on:
       ocorrencias-db: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
