@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 
 public record LocalizacaoDTO(
         @DecimalMin(value = "-90.0", message = "Latitude deve estar entre -90 e 90")
@@ -17,4 +18,8 @@ public record LocalizacaoDTO(
         @NotBlank(message = "O endereço é obrigatório")
         @Size(max = 500, message = "O endereço não pode exceder 500 caracteres")
         String endereco
-) {}
+) {
+    public static LocalizacaoDTO fromEntity(Ocorrencia o) {
+        return new LocalizacaoDTO(o.getLatitude(), o.getLongitude(), o.getEndereco());
+    }
+}

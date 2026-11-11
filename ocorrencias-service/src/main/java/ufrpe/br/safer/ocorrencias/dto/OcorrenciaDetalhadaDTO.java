@@ -20,23 +20,12 @@ public record OcorrenciaDetalhadaDTO(
         List<HistoricoOcorrenciaDTO> historico
 ) {
     public static OcorrenciaDetalhadaDTO fromEntity(Ocorrencia o, List<HistoricoOcorrenciaDTO> historico) {
-        ComunicanteDTO comunicante = new ComunicanteDTO(
-                o.getComunicanteNome(),
-                o.getComunicanteEmail(),
-                o.getComunicanteTelefone(),
-                o.getComunicanteRelacaoUfrpe()
-        );
-        LocalizacaoDTO localizacao = new LocalizacaoDTO(
-                o.getLatitude(),
-                o.getLongitude(),
-                o.getEndereco()
-        );
         return new OcorrenciaDetalhadaDTO(
                 o.getId(),
                 o.getProtocolo(),
                 o.getUsuarioId(),
-                comunicante,
-                localizacao,
+                ComunicanteDTO.fromEntity(o),
+                LocalizacaoDTO.fromEntity(o),
                 o.getDescricaoAnimal(),
                 o.getStatus(),
                 o.getAnalistaResponsavelId(),

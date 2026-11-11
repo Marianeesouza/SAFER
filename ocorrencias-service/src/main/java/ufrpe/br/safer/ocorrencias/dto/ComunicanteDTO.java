@@ -3,6 +3,7 @@ package ufrpe.br.safer.ocorrencias.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 
 public record ComunicanteDTO(
         @NotBlank(message = "O nome do comunicante é obrigatório")
@@ -19,4 +20,13 @@ public record ComunicanteDTO(
 
         @Size(max = 50, message = "A relação com a UFRPE não pode exceder 50 caracteres")
         String relacaoUfrpe
-) {}
+) {
+    public static ComunicanteDTO fromEntity(Ocorrencia o) {
+        return new ComunicanteDTO(
+                o.getComunicanteNome(),
+                o.getComunicanteEmail(),
+                o.getComunicanteTelefone(),
+                o.getComunicanteRelacaoUfrpe()
+        );
+    }
+}
