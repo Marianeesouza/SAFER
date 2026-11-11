@@ -1,6 +1,5 @@
 # Infraestrutura + serviços do SAFER.
-#   docker compose up --build                         # tudo, exceto Nominatim local
-#   docker compose --profile nominatim up --build     # inclui o Nominatim (precisa de um .osm.pbf, ver abaixo)
+#   docker compose up --build                         # infraestrutura + todos os serviços
 #   docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db rabbitmq mailhog
 #       -> só a infraestrutura, para rodar os serviços pela IDE (portas publicadas abaixo)
 #
@@ -76,19 +75,6 @@ services:
       - "1025:1025"   # SMTP
       - "8025:8025"   # interface web com os e-mails enviados
 
-  # Opcional. Sem ele, geocodificacao-service usa o Nominatim público (NOMINATIM_URL).
-  # Coloque um extrato em ./nominatim-data/region.osm.pbf (ex.: Geofabrik, Nordeste do Brasil).
-  nominatim:
-    profiles: ["nominatim"]
-    image: mediagis/nominatim:4.5
-    environment:
-      PBF_PATH: /nominatim-data/region.osm.pbf
-    volumes:
-      - ./nominatim-data:/nominatim-data:ro
-      - nominatim-db:/var/lib/postgresql/16/main
-    ports: ["8088:8080"]
-    shm_size: 1g
-
   # ---------- Infraestrutura da arquitetura ----------
   discovery-server:
     build: { context: ., args: { MODULE: discovery-server } }
@@ -126,7 +112,9 @@ services:
     environment:
       <<: *servico-env
       DB_URL: jdbc:postgresql://geocodificacao-db:5432/geocodificacao_db
+      # API pública do Nominatim
       NOMINATIM_URL: ${NOMINATIM_URL:-https://nominatim.openstreetmap.org}
+    ports: ["8083:8083"]
     depends_on:
       geocodificacao-db: { condition: service_healthy }
       discovery-server: { condition: service_started }
@@ -149,4 +137,3 @@ volumes:
   ocorrencias-data:
   notificacoes-data:
   geocodificacao-data:
-  nominatim-db:
