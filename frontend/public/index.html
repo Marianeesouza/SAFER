@@ -29,6 +29,9 @@
         <label>Nome
           <input type="text" name="name" required>
         </label>
+        <label>E-mail
+          <input type="email" name="email" placeholder="Ex.: seu.email@ufrpe.br" required>
+        </label>
         <label>Celular
           <input type="tel" name="mobile" required>
         </label>
@@ -92,14 +95,14 @@
         </label>
         <div class="buttons">
           <button type="button" class="secondary" data-go="2">Voltar</button>
-          <button type="submit">Enviar (apenas teste)</button>
+          <button type="submit" id="submit-btn">Registrar ocorrência</button>
         </div>
       </section>
     </form>
 
     <section id="result-box" hidden>
-      <h2>Dados do formulário</h2>
-      <p class="hint">Nada foi enviado a nenhum serviço. Isto é só o que seria cadastrado.</p>
+      <h2 id="result-title">Ocorrência registrada</h2>
+      <p class="hint" id="result-hint">Resposta retornada pelo serviço de ocorrências:</p>
       <pre id="result"></pre>
     </section>
   </main>

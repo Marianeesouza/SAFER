@@ -1,6 +1,7 @@
-// Página de teste: só conversa com o serviço de geocodificação, por um caminho relativo.
-// Quem repassa a chamada ao serviço é o Nginx (veja nginx.conf).
+// Página de teste integrada com geocodificacao-service e ocorrencias-service.
+// Quem repassa a chamada aos serviços é o Nginx (veja nginx.conf).
 const GEO_API = "/api/geocoding";
+const OCORRENCIAS_API = "/api/ocorrencias";
 
 // Centro e zoom iniciais, aproveitados do protótipo anterior (campus da UFRPE).
 const INITIAL_CENTER = [-8.017598865420956, -34.94933404268544];
@@ -146,8 +147,8 @@ function currentPageIsValid() {
       valid = false;
     }
   });
-  if (valid && page.id === "page2" && !latitudeInput.value) {
-    setStatus("Marque o local no mapa ou busque um endereço.", true);
+  if (valid && page.id === "page2" && !latitudeInput.value && !addressInput.value.trim()) {
+    setStatus("Marque o local no mapa ou informe um endereço.", true);
     valid = false;
   }
   return valid;
@@ -162,12 +163,65 @@ document.querySelectorAll("[data-go]").forEach(button => {
   });
 });
 
-// ---------- Envio (somente exibe os dados) ----------
+// ---------- Envio ao ocorrencias-service ----------
 
-form.addEventListener("submit", event => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
   if (!currentPageIsValid()) return;
+
   const data = Object.fromEntries(new FormData(form).entries());
-  document.getElementById("result").textContent = JSON.stringify(data, null, 2);
-  document.getElementById("result-box").hidden = false;
+  const baseAddress = (data.address || "").trim()
+    || (data.latitude ? `Coordenadas (${Number(data.latitude).toFixed(6)}, ${Number(data.longitude).toFixed(6)}) - Campus UFRPE` : "");
+  const reference = (data.reference || "").trim();
+  const enderecoFinal = reference ? `${baseAddress} (Ref.: ${reference})` : baseAddress;
+
+  const payload = {
+    usuarioId: null,
+    comunicante: {
+      nome: data.name.trim(),
+      email: data.email.trim(),
+      telefone: data.mobile.trim() || (data.landline ? data.landline.trim() : null),
+      relacaoUfrpe: data.ufrpeRelation
+    },
+    localizacao: {
+      latitude: data.latitude ? Number(data.latitude) : null,
+      longitude: data.longitude ? Number(data.longitude) : null,
+      endereco: enderecoFinal
+    },
+    descricaoAnimal: `${data.animal.trim()}: ${data.description.trim()}`
+  };
+
+  const submitBtn = document.getElementById("submit-btn");
+  const resultBox = document.getElementById("result-box");
+  const resultTitle = document.getElementById("result-title");
+  const resultHint = document.getElementById("result-hint");
+  const resultEl = document.getElementById("result");
+
+  submitBtn.disabled = true;
+  try {
+    const response = await fetch(OCORRENCIAS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      resultTitle.textContent = "Erro ao registrar ocorrência";
+      resultHint.textContent = body.detail || `Erro HTTP ${response.status}`;
+      resultEl.textContent = JSON.stringify(body, null, 2);
+      resultBox.hidden = false;
+      return;
+    }
+    resultTitle.textContent = `Ocorrência registrada! Protocolo: ${body.protocolo}`;
+    resultHint.textContent = "Salva com sucesso no ocorrencias-service:";
+    resultEl.textContent = JSON.stringify(body, null, 2);
+    resultBox.hidden = false;
+  } catch (e) {
+    resultTitle.textContent = "Erro de conexão";
+    resultHint.textContent = "Não foi possível comunicar com o ocorrencias-service.";
+    resultEl.textContent = e.message;
+    resultBox.hidden = false;
+  } finally {
+    submitBtn.disabled = false;
+  }
 });

@@ -127,7 +127,7 @@ services:
       - ./frontend/public:/usr/share/nginx/html:ro
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports: ["5500:80"]
-    depends_on: [geocodificacao-service]
+    depends_on: [geocodificacao-service, ocorrencias-service]
 
   notificacoes-service:
     build: { context: ., args: { MODULE: notificacoes-service } }
