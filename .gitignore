@@ -26,3 +26,16 @@ replay_pid*
 ### Gradle / IDE ###
 build/
 .gradle/
+.idea/
+*.iml
+
+# Eclipse metadata
+.metadata/
+.project
+.classpath
+.settings/
+bin/
+*/.project
+*/.classpath
+*/.settings/
+*/bin/
