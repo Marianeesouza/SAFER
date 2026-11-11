@@ -1,13 +1,20 @@
 package ufrpe.br.safer.ocorrencias.controller;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
+import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 
 import java.net.URI;
@@ -15,59 +22,51 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class ErrorHandler {
+public class ErrorHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OcorrenciaNaoEncontradaException.class)
     public ProblemDetail handleOcorrenciaNaoEncontrada(OcorrenciaNaoEncontradaException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
-        problem.setTitle("Ocorrência não encontrada");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/not-found"));
-        return problem;
+        return problema(HttpStatus.NOT_FOUND, "Ocorrência não encontrada", "not-found", e.getMessage());
     }
 
     @ExceptionHandler(OcorrenciaJaAssumidaException.class)
     public ProblemDetail handleOcorrenciaJaAssumida(OcorrenciaJaAssumidaException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
-        problem.setTitle("Conflito de atendimento (RN03)");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/conflict"));
-        return problem;
+        return problema(HttpStatus.CONFLICT, "Conflito de atendimento (RN03)", "conflict", e.getMessage());
     }
 
-    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
-    public ProblemDetail handleOptimisticLock(org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "A ocorrência foi alterada concomitantemente por outra operação. Por favor, recarregue os dados e tente novamente.");
-        problem.setTitle("Conflito de concorrência");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/concurrency-conflict"));
-        return problem;
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException e) {
+        return problema(HttpStatus.CONFLICT, "Conflito de concorrência", "concurrency-conflict",
+                "A ocorrência foi alterada concomitantemente por outra operação. Por favor, recarregue os dados e tente novamente.");
     }
 
     @ExceptionHandler(TransicaoStatusInvalidaException.class)
     public ProblemDetail handleTransicaoInvalida(TransicaoStatusInvalidaException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        problem.setTitle("Transição de status inválida (RN03)");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/unprocessable-entity"));
-        return problem;
+        return problema(HttpStatus.UNPROCESSABLE_ENTITY, "Transição de status inválida (RN03)", "unprocessable-entity", e.getMessage());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleIllegalArgument(IllegalArgumentException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
-        problem.setTitle("Regra de negócio violada");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/bad-request"));
-        return problem;
+    @ExceptionHandler(BusinessRuleException.class)
+    public ProblemDetail handleBusinessRule(BusinessRuleException e) {
+        return problema(HttpStatus.BAD_REQUEST, "Regra de negócio violada", "bad-request", e.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidation(MethodArgumentNotValidException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Dados de entrada inválidos");
-        problem.setTitle("Erro de validação");
-        problem.setType(URI.create("https://safer.ufrpe.br/errors/validation"));
-
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e,
+                                                                  HttpHeaders headers, HttpStatusCode status,
+                                                                  WebRequest request) {
+        ProblemDetail problem = problema(HttpStatus.BAD_REQUEST, "Erro de validação", "validation", "Dados de entrada inválidos");
         Map<String, String> erros = new HashMap<>();
         for (FieldError fe : e.getBindingResult().getFieldErrors()) {
             erros.put(fe.getField(), fe.getDefaultMessage());
         }
         problem.setProperty("erros", erros);
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    private static ProblemDetail problema(HttpStatus status, String titulo, String tipo, String detalhe) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detalhe);
+        problem.setTitle(titulo);
+        problem.setType(URI.create("https://safer.ufrpe.br/errors/" + tipo));
         return problem;
     }
 }

@@ -23,6 +23,7 @@ import ufrpe.br.safer.ocorrencias.dto.OcorrenciaDetalhadaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaResponseDTO;
 import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.dto.VincularAnalistaDTO;
+import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
 import ufrpe.br.safer.ocorrencias.service.OcorrenciasService;
 
@@ -86,7 +87,7 @@ public class OcorrenciasController {
             @ApiResponse(responseCode = "200", description = "Ocorrência cancelada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Justificativa não informada"),
             @ApiResponse(responseCode = "404", description = "Ocorrência não encontrada"),
-            @ApiResponse(responseCode = "409", description = "Conflito: a ocorrência mudou de estado antes do cancelamento")
+            @ApiResponse(responseCode = "422", description = "A ocorrência já está em atendimento ou finalizada")
     })
     public ResponseEntity<OcorrenciaResponseDTO> cancelarOcorrencia(
             @Parameter(description = "ID numérico da ocorrência") @PathVariable Long id,
@@ -106,7 +107,7 @@ public class OcorrenciasController {
     ) {
         return ocorrenciasService.buscarDetalhesPorId(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));
     }
 
     @GetMapping("/protocolo/{protocolo}")
@@ -120,7 +121,7 @@ public class OcorrenciasController {
     ) {
         return ocorrenciasService.buscarDetalhesPorProtocolo(protocolo)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o protocolo: " + protocolo));
     }
 
     @GetMapping("/em-aberto")
