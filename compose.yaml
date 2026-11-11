@@ -102,10 +102,12 @@ services:
       <<: *servico-env
       DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
       RABBITMQ_HOST: rabbitmq
+      SAFER_SERVICES_GEOCODIFICACAO_URL: http://geocodificacao-service:8083
     depends_on:
       ocorrencias-db: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
       discovery-server: { condition: service_started }
+      geocodificacao-service: { condition: service_started }
 
   geocodificacao-service:
     build: { context: ., args: { MODULE: geocodificacao-service } }
