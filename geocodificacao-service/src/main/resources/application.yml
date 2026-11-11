@@ -23,11 +23,16 @@ eureka:
 safer:
   nominatim:
     url: ${NOMINATIM_URL:https://nominatim.openstreetmap.org}
-    user-agent: safer-geocodificacao/0.1 (UFRPE)
-  mapa:
+    user-agent: safer-geocoding/0.1 (UFRPE)
+  map:
     url-template: https://tile.openstreetmap.org/{z}/{x}/{y}.png
-    atribuicao: "© OpenStreetMap contributors"
+    attribution: "© OpenStreetMap contributors"
     max-zoom: 19
+  campus:
+    # Center point of the UFRPE campus and the radius that counts as inside.
+    latitude: -8.017611
+    longitude: -34.949472
+    radius-meters: 1200
 
 management:
   endpoints:

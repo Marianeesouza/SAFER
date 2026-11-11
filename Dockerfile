@@ -3,7 +3,8 @@ FROM eclipse-temurin:21-jdk AS build
 ARG MODULE
 WORKDIR /app
 COPY . .
-RUN ./gradlew :${MODULE}:bootJar --no-daemon
+# chmod: o gradlew pode estar sem permissão de execução quando o repositório vem de um checkout no Windows.
+RUN chmod +x gradlew && ./gradlew :${MODULE}:bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre
 ARG MODULE
