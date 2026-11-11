@@ -13,6 +13,7 @@ import ufrpe.br.safer.ocorrencias.dto.OcorrenciaResponseDTO;
 import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
+import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
@@ -45,24 +46,22 @@ public class OcorrenciasService {
         Double lat = dto.localizacao().latitude();
         Double lng = dto.localizacao().longitude();
 
-        if ((lat == null && lng != null) || (lat != null && lng == null)) {
-            throw new IllegalArgumentException("Latitude e longitude devem ser fornecidas juntas ou ambas ausentes.");
+        if ((lat == null) != (lng == null)) {
+            throw new BusinessRuleException("Latitude e longitude devem ser fornecidas juntas ou ambas ausentes.");
         }
 
         if (lat != null) {
-            boolean noCampus = geocodificacaoClient.validarPontoNoCampus(lat, lng);
-            if (!noCampus) {
-                throw new IllegalArgumentException("As coordenadas informadas estão fora do perímetro do campus da UFRPE.");
+            if (!geocodificacaoClient.validarPontoNoCampus(lat, lng)) {
+                throw new BusinessRuleException("As coordenadas informadas estão fora do perímetro do campus da UFRPE.");
             }
         } else {
             log.info("Ocorrência registrada no modo de contingência (endereço textual sem coordenadas prévias).");
         }
 
         LocalDateTime agora = LocalDateTime.now();
-        String protocolo = gerarProtocoloUnico();
 
         Ocorrencia ocorrencia = Ocorrencia.builder()
-                .protocolo(protocolo)
+                .protocolo(gerarProtocoloUnico())
                 .usuarioId(dto.usuarioId())
                 .comunicanteNome(dto.comunicante().nome().trim())
                 .comunicanteEmail(dto.comunicante().email().trim())
@@ -78,18 +77,9 @@ public class OcorrenciasService {
                 .build();
 
         Ocorrencia salva = ocorrenciaRepository.save(ocorrencia);
+        registrarHistorico(salva, StatusOcorrencia.EM_ABERTO, dto.usuarioId(), "Ocorrência registrada no sistema.", agora);
 
-        HistoricoOcorrencia historicoInicial = HistoricoOcorrencia.builder()
-                .ocorrencia(salva)
-                .statusRegistrado(StatusOcorrencia.EM_ABERTO)
-                .usuarioId(dto.usuarioId())
-                .observacao("Ocorrência registrada no sistema.")
-                .dataHora(agora)
-                .build();
-
-        historicoOcorrenciaRepository.save(historicoInicial);
-
-        OcorrenciaRegistradaEvent evento = new OcorrenciaRegistradaEvent(
+        eventPublisher.publicarOcorrenciaRegistrada(new OcorrenciaRegistradaEvent(
                 salva.getId(),
                 salva.getProtocolo(),
                 salva.getComunicanteNome(),
@@ -98,67 +88,44 @@ public class OcorrenciasService {
                 salva.getEndereco(),
                 salva.getStatus(),
                 salva.getCriadoEm()
-        );
-        eventPublisher.publicarOcorrenciaRegistrada(evento);
+        ));
 
         return OcorrenciaResponseDTO.fromEntity(salva);
     }
 
     @Transactional
     public OcorrenciaResponseDTO vincularAnalista(Long id, Long analistaId) {
-        Ocorrencia ocorrencia = ocorrenciaRepository.findById(id)
-                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));
+        Ocorrencia ocorrencia = buscarComBloqueio(id);
 
         if (ocorrencia.getStatus() != StatusOcorrencia.EM_ABERTO || ocorrencia.getAnalistaResponsavelId() != null) {
             throw new OcorrenciaJaAssumidaException("Esta ocorrência já foi assumida por outro analista ou não está mais disponível para atendimento.");
         }
 
         LocalDateTime agora = LocalDateTime.now();
-        int atualizados = ocorrenciaRepository.vincularAnalistaAtomicamente(
-                id,
-                analistaId,
-                StatusOcorrencia.EM_ATENDIMENTO,
-                StatusOcorrencia.EM_ABERTO,
-                agora
-        );
-
-        if (atualizados == 0) {
-            throw new OcorrenciaJaAssumidaException("Esta ocorrência já foi assumida por outro analista e não está mais disponível para atendimento.");
-        }
-
         ocorrencia.setAnalistaResponsavelId(analistaId);
         ocorrencia.setStatus(StatusOcorrencia.EM_ATENDIMENTO);
         ocorrencia.setAtualizadoEm(agora);
 
-        HistoricoOcorrencia historico = HistoricoOcorrencia.builder()
-                .ocorrencia(ocorrencia)
-                .statusRegistrado(StatusOcorrencia.EM_ATENDIMENTO)
-                .usuarioId(analistaId)
-                .observacao("Atendimento assumido pelo analista ID " + analistaId + ".")
-                .dataHora(agora)
-                .build();
+        String observacao = "Atendimento assumido pelo analista ID " + analistaId + ".";
+        registrarHistorico(ocorrencia, StatusOcorrencia.EM_ATENDIMENTO, analistaId, observacao, agora);
 
-        historicoOcorrenciaRepository.save(historico);
-
-        StatusOcorrenciaAlteradoEvent evento = new StatusOcorrenciaAlteradoEvent(
+        eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicanteEmail(),
                 StatusOcorrencia.EM_ABERTO,
                 StatusOcorrencia.EM_ATENDIMENTO,
                 analistaId,
-                historico.getObservacao(),
+                observacao,
                 agora
-        );
-        eventPublisher.publicarStatusAlterado(evento);
+        ));
 
         return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
 
     @Transactional
     public OcorrenciaResponseDTO atualizarStatus(Long id, AtualizarStatusDTO dto) {
-        Ocorrencia ocorrencia = ocorrenciaRepository.findById(id)
-                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));
+        Ocorrencia ocorrencia = buscarComBloqueio(id);
 
         StatusOcorrencia statusAtual = ocorrencia.getStatus();
         StatusOcorrencia novoStatus = dto.novoStatus();
@@ -169,44 +136,38 @@ public class OcorrenciasService {
             );
         }
 
+        if (statusAtual == StatusOcorrencia.EM_ABERTO) {
+            throw new TransicaoStatusInvalidaException(
+                    "Para assumir ou cancelar uma ocorrência em aberto, use os endpoints vincular-analista e cancelar."
+            );
+        }
+
         LocalDateTime agora = LocalDateTime.now();
         ocorrencia.setStatus(novoStatus);
         ocorrencia.setAtualizadoEm(agora);
-        Ocorrencia atualizada = ocorrenciaRepository.save(ocorrencia);
 
         String observacao = (dto.observacao() != null && !dto.observacao().isBlank())
                 ? dto.observacao().trim()
                 : "Status alterado para " + novoStatus;
+        registrarHistorico(ocorrencia, novoStatus, dto.analistaId(), observacao, agora);
 
-        HistoricoOcorrencia historico = HistoricoOcorrencia.builder()
-                .ocorrencia(atualizada)
-                .statusRegistrado(novoStatus)
-                .usuarioId(dto.analistaId())
-                .observacao(observacao)
-                .dataHora(agora)
-                .build();
-
-        historicoOcorrenciaRepository.save(historico);
-
-        StatusOcorrenciaAlteradoEvent evento = new StatusOcorrenciaAlteradoEvent(
-                atualizada.getId(),
-                atualizada.getProtocolo(),
-                atualizada.getComunicanteEmail(),
+        eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
+                ocorrencia.getId(),
+                ocorrencia.getProtocolo(),
+                ocorrencia.getComunicanteEmail(),
                 statusAtual,
                 novoStatus,
                 dto.analistaId(),
                 observacao,
                 agora
-        );
-        eventPublisher.publicarStatusAlterado(evento);
+        ));
 
-        return OcorrenciaResponseDTO.fromEntity(atualizada);
+        return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
 
     @Transactional
     public OcorrenciaResponseDTO cancelarOcorrencia(Long id, CancelarOcorrenciaDTO dto) {
-        Ocorrencia ocorrencia = ocorrenciaRepository.findById(id)
-                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));
+        Ocorrencia ocorrencia = buscarComBloqueio(id);
 
         if (ocorrencia.getStatus() != StatusOcorrencia.EM_ABERTO) {
             throw new TransicaoStatusInvalidaException(
@@ -215,41 +176,20 @@ public class OcorrenciasService {
         }
 
         LocalDateTime agora = LocalDateTime.now();
-        int cancelados = ocorrenciaRepository.cancelarOcorrenciaAtomicamente(
-                id,
-                StatusOcorrencia.CANCELADO,
-                StatusOcorrencia.EM_ABERTO,
-                agora
-        );
-
-        if (cancelados == 0) {
-            throw new OcorrenciaJaAssumidaException(
-                    "O cancelamento não pode ser realizado porque o estado da ocorrência foi alterado recentemente por outro usuário ou analista."
-            );
-        }
-
+        String justificativa = dto.justificativa().trim();
         ocorrencia.setStatus(StatusOcorrencia.CANCELADO);
         ocorrencia.setAtualizadoEm(agora);
 
-        HistoricoOcorrencia historico = HistoricoOcorrencia.builder()
-                .ocorrencia(ocorrencia)
-                .statusRegistrado(StatusOcorrencia.CANCELADO)
-                .usuarioId(dto.usuarioId())
-                .observacao("Cancelamento: " + dto.justificativa().trim())
-                .dataHora(agora)
-                .build();
+        registrarHistorico(ocorrencia, StatusOcorrencia.CANCELADO, dto.usuarioId(), "Cancelamento: " + justificativa, agora);
 
-        historicoOcorrenciaRepository.save(historico);
-
-        OcorrenciaCanceladaEvent evento = new OcorrenciaCanceladaEvent(
+        eventPublisher.publicarOcorrenciaCancelada(new OcorrenciaCanceladaEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicanteEmail(),
                 dto.usuarioId(),
-                dto.justificativa().trim(),
+                justificativa,
                 agora
-        );
-        eventPublisher.publicarOcorrenciaCancelada(evento);
+        ));
 
         return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
@@ -266,37 +206,19 @@ public class OcorrenciasService {
 
     @Transactional(readOnly = true)
     public List<OcorrenciaResponseDTO> listarEmAberto() {
-        return ocorrenciaRepository.findByStatusOrderByCriadoEmDesc(StatusOcorrencia.EM_ABERTO).stream()
-                .map(OcorrenciaResponseDTO::fromEntity)
-                .toList();
+        return listar(StatusOcorrencia.EM_ABERTO);
     }
 
     @Transactional(readOnly = true)
     public List<OcorrenciaResponseDTO> listarPorUsuario(Long usuarioId) {
-        return ocorrenciaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuarioId).stream()
-                .map(OcorrenciaResponseDTO::fromEntity)
-                .toList();
+        return paraResposta(ocorrenciaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuarioId));
     }
 
     @Transactional(readOnly = true)
     public List<OcorrenciaResponseDTO> listar(StatusOcorrencia status) {
-        List<Ocorrencia> lista = (status != null)
+        return paraResposta(status != null
                 ? ocorrenciaRepository.findByStatusOrderByCriadoEmDesc(status)
-                : ocorrenciaRepository.findAllByOrderByCriadoEmDesc();
-
-        return lista.stream()
-                .map(OcorrenciaResponseDTO::fromEntity)
-                .toList();
-    }
-
-    private OcorrenciaDetalhadaDTO montarOcorrenciaDetalhada(Ocorrencia ocorrencia) {
-        List<HistoricoOcorrenciaDTO> historico = historicoOcorrenciaRepository
-                .findByOcorrenciaIdOrderByDataHoraAsc(ocorrencia.getId())
-                .stream()
-                .map(HistoricoOcorrenciaDTO::fromEntity)
-                .toList();
-
-        return OcorrenciaDetalhadaDTO.fromEntity(ocorrencia, historico);
+                : ocorrenciaRepository.findAllByOrderByCriadoEmDesc());
     }
 
     private String gerarProtocoloUnico() {
@@ -307,5 +229,36 @@ public class OcorrenciasService {
             protocolo = "OC-" + dataPrefixo + "-" + sufixo;
         } while (ocorrenciaRepository.existsByProtocolo(protocolo));
         return protocolo;
+    }
+
+    /** Lê a ocorrência bloqueando a linha: operações concorrentes sobre ela passam a ser serializadas. */
+    private Ocorrencia buscarComBloqueio(Long id) {
+        return ocorrenciaRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));
+    }
+
+    private void registrarHistorico(Ocorrencia ocorrencia, StatusOcorrencia status, Long usuarioId,
+                                    String observacao, LocalDateTime dataHora) {
+        historicoOcorrenciaRepository.save(HistoricoOcorrencia.builder()
+                .ocorrencia(ocorrencia)
+                .statusRegistrado(status)
+                .usuarioId(usuarioId)
+                .observacao(observacao)
+                .dataHora(dataHora)
+                .build());
+    }
+
+    private List<OcorrenciaResponseDTO> paraResposta(List<Ocorrencia> ocorrencias) {
+        return ocorrencias.stream().map(OcorrenciaResponseDTO::fromEntity).toList();
+    }
+
+    private OcorrenciaDetalhadaDTO montarOcorrenciaDetalhada(Ocorrencia ocorrencia) {
+        List<HistoricoOcorrenciaDTO> historico = historicoOcorrenciaRepository
+                .findByOcorrenciaIdOrderByDataHoraAsc(ocorrencia.getId())
+                .stream()
+                .map(HistoricoOcorrenciaDTO::fromEntity)
+                .toList();
+
+        return OcorrenciaDetalhadaDTO.fromEntity(ocorrencia, historico);
     }
 }

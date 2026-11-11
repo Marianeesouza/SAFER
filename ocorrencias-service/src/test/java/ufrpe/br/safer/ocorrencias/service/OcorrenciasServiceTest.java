@@ -15,6 +15,7 @@ import ufrpe.br.safer.ocorrencias.dto.OcorrenciaDetalhadaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaResponseDTO;
 import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
+import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +57,9 @@ class OcorrenciasServiceTest {
     @InjectMocks
     private OcorrenciasService ocorrenciasService;
 
+    private static final String PROTOCOLO_1 = "OC-20261111-0001";
+    private static final String PROTOCOLO_2 = "OC-20261111-0002";
+
     @Test
     @DisplayName("Deve registrar ocorrencia com sucesso dentro do campus")
     void deveRegistrarOcorrenciaComSucesso() {
@@ -66,7 +71,6 @@ class OcorrenciasServiceTest {
         );
 
         when(geocodificacaoClient.validarPontoNoCampus(-8.0163, -34.9501)).thenReturn(true);
-        when(ocorrenciaRepository.existsByProtocolo(any())).thenReturn(false);
         when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> {
             Ocorrencia o = invocation.getArgument(0);
             o.setId(10L);
@@ -103,11 +107,11 @@ class OcorrenciasServiceTest {
         );
 
         assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(apenasLat))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Latitude e longitude devem ser fornecidas juntas ou ambas ausentes");
 
         assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(apenasLng))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Latitude e longitude devem ser fornecidas juntas ou ambas ausentes");
     }
 
@@ -121,7 +125,6 @@ class OcorrenciasServiceTest {
                 "Cavalo solto na pista"
         );
 
-        when(ocorrenciaRepository.existsByProtocolo(any())).thenReturn(false);
         when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> {
             Ocorrencia o = invocation.getArgument(0);
             o.setId(20L);
@@ -143,11 +146,9 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve vincular analista e transicionar para EM_ATENDIMENTO com sucesso")
     void deveVincularAnalistaComSucesso() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
-        when(ocorrenciaRepository.vincularAnalistaAtomicamente(eq(1L), eq(99L), eq(StatusOcorrencia.EM_ATENDIMENTO), eq(StatusOcorrencia.EM_ABERTO), any()))
-                .thenReturn(1);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         OcorrenciaResponseDTO response = ocorrenciasService.vincularAnalista(1L, 99L);
 
@@ -159,27 +160,26 @@ class OcorrenciasServiceTest {
     }
 
     @Test
-    @DisplayName("Deve barrar com OcorrenciaJaAssumidaException se outro analista assumir concorrentemente (Race Condition)")
-    void deveBarrarRaceConditionAoVincularAnalista() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+    @DisplayName("Deve barrar com OcorrenciaJaAssumidaException se outro analista ja assumiu (a leitura com bloqueio serializa as tentativas)")
+    void deveBarrarVinculoDeOcorrenciaJaAssumida() {
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ATENDIMENTO, 5L);
+        o.setAnalistaResponsavelId(77L);
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
-        when(ocorrenciaRepository.vincularAnalistaAtomicamente(eq(1L), eq(99L), eq(StatusOcorrencia.EM_ATENDIMENTO), eq(StatusOcorrencia.EM_ABERTO), any()))
-                .thenReturn(0);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         assertThatThrownBy(() -> ocorrenciasService.vincularAnalista(1L, 99L))
                 .isInstanceOf(OcorrenciaJaAssumidaException.class)
                 .hasMessageContaining("já foi assumida por outro analista");
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
     @DisplayName("Deve atualizar status com transição válida segundo a máquina de estados (RN03)")
     void deveAtualizarStatusValido() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ATENDIMENTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ATENDIMENTO, 5L);
         o.setAnalistaResponsavelId(99L);
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
-        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(i -> i.getArgument(0));
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         AtualizarStatusDTO dto = new AtualizarStatusDTO(
                 StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
@@ -197,9 +197,9 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve lançar TransicaoStatusInvalidaException se transição for proibida pela RN03")
     void deveRejeitarTransicaoInvalida() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         AtualizarStatusDTO dto = new AtualizarStatusDTO(
                 StatusOcorrencia.FINALIZADO_COM_SUCESSO,
@@ -213,14 +213,27 @@ class OcorrenciasServiceTest {
     }
 
     @Test
+    @DisplayName("Deve barrar assumir ou cancelar pelo endpoint de status (sem analista responsavel nem justificativa)")
+    void deveBarrarAssumirOuCancelarPeloEndpointDeStatus() {
+        for (StatusOcorrencia destino : List.of(StatusOcorrencia.EM_ATENDIMENTO, StatusOcorrencia.CANCELADO)) {
+            Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+            when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+
+            assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(destino, 99L, null)))
+                    .isInstanceOf(TransicaoStatusInvalidaException.class)
+                    .hasMessageContaining("vincular-analista");
+            assertThat(o.getStatus()).isEqualTo(StatusOcorrencia.EM_ABERTO);
+        }
+        verifyNoInteractions(historicoOcorrenciaRepository, eventPublisher);
+    }
+
+    @Test
     @DisplayName("Deve cancelar ocorrencia com status EM_ABERTO e gravar justificativa (CDU08)")
     void deveCancelarOcorrenciaComSucesso() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
         CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO(5L, "Animal fugiu do local antes da equipe chegar.");
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
-        when(ocorrenciaRepository.cancelarOcorrenciaAtomicamente(eq(1L), eq(StatusOcorrencia.CANCELADO), eq(StatusOcorrencia.EM_ABERTO), any()))
-                .thenReturn(1);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         OcorrenciaResponseDTO response = ocorrenciasService.cancelarOcorrencia(1L, dto);
 
@@ -232,30 +245,14 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve barrar cancelamento se ocorrencia já estiver em atendimento (RN03)")
     void deveBarrarCancelamentoSeJaEmAtendimento() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ATENDIMENTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ATENDIMENTO, 5L);
         CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO(5L, "Tentando cancelar chamada em atendimento.");
 
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         assertThatThrownBy(() -> ocorrenciasService.cancelarOcorrencia(1L, dto))
                 .isInstanceOf(TransicaoStatusInvalidaException.class)
                 .hasMessageContaining("já está em atendimento ou finalizada");
-    }
-
-    @Test
-    @DisplayName("Deve barrar cancelamento por race condition se analista assumir concomitantemente (CDU08 Passo 4)")
-    void deveBarrarCancelamentoPorRaceCondition() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
-        CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO(5L, "Animal fugiu.");
-
-        when(ocorrenciaRepository.findById(1L)).thenReturn(Optional.of(o));
-        // Linhas afetadas = 0 simula que o analista assumiu no milissegundo exato da confirmação
-        when(ocorrenciaRepository.cancelarOcorrenciaAtomicamente(eq(1L), eq(StatusOcorrencia.CANCELADO), eq(StatusOcorrencia.EM_ABERTO), any()))
-                .thenReturn(0);
-
-        assertThatThrownBy(() -> ocorrenciasService.cancelarOcorrencia(1L, dto))
-                .isInstanceOf(OcorrenciaJaAssumidaException.class)
-                .hasMessageContaining("estado da ocorrência foi alterado recentemente");
     }
 
     @Test
@@ -271,7 +268,7 @@ class OcorrenciasServiceTest {
         when(geocodificacaoClient.validarPontoNoCampus(-8.0500, -34.9000)).thenReturn(false);
 
         assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("fora do perímetro do campus da UFRPE");
     }
 
@@ -279,7 +276,7 @@ class OcorrenciasServiceTest {
     @DisplayName("Deve buscar detalhes da ocorrencia por ID com historico ordenado")
     void deveBuscarDetalhesPorIdComHistorico() {
         LocalDateTime agora = LocalDateTime.now();
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
 
         HistoricoOcorrencia h = HistoricoOcorrencia.builder()
                 .id(100L)
@@ -297,7 +294,7 @@ class OcorrenciasServiceTest {
 
         assertThat(opt).isPresent();
         OcorrenciaDetalhadaDTO dto = opt.get();
-        assertThat(dto.protocolo()).isEqualTo("OC-20261111-0001");
+        assertThat(dto.protocolo()).isEqualTo(PROTOCOLO_1);
         assertThat(dto.historico()).hasSize(1);
         assertThat(dto.historico().get(0).statusRegistrado()).isEqualTo(StatusOcorrencia.EM_ABERTO);
     }
@@ -305,12 +302,12 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve buscar detalhes da ocorrencia por protocolo")
     void deveBuscarDetalhesPorProtocolo() {
-        Ocorrencia o = criarOcorrenciaMock(2L, "OC-20261111-0002", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(2L, PROTOCOLO_2, StatusOcorrencia.EM_ABERTO, 5L);
 
-        when(ocorrenciaRepository.findByProtocolo("OC-20261111-0002")).thenReturn(Optional.of(o));
+        when(ocorrenciaRepository.findByProtocolo(PROTOCOLO_2)).thenReturn(Optional.of(o));
         when(historicoOcorrenciaRepository.findByOcorrenciaIdOrderByDataHoraAsc(2L)).thenReturn(List.of());
 
-        Optional<OcorrenciaDetalhadaDTO> opt = ocorrenciasService.buscarDetalhesPorProtocolo("OC-20261111-0002");
+        Optional<OcorrenciaDetalhadaDTO> opt = ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_2);
 
         assertThat(opt).isPresent();
         assertThat(opt.get().id()).isEqualTo(2L);
@@ -320,8 +317,8 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve listar ocorrencias em aberto")
     void deveListarEmAberto() {
-        Ocorrencia o1 = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
-        Ocorrencia o2 = criarOcorrenciaMock(2L, "OC-20261111-0002", StatusOcorrencia.EM_ABERTO, 6L);
+        Ocorrencia o1 = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o2 = criarOcorrenciaMock(2L, PROTOCOLO_2, StatusOcorrencia.EM_ABERTO, 6L);
 
         when(ocorrenciaRepository.findByStatusOrderByCriadoEmDesc(StatusOcorrencia.EM_ABERTO))
                 .thenReturn(List.of(o1, o2));
@@ -335,7 +332,7 @@ class OcorrenciasServiceTest {
     @Test
     @DisplayName("Deve listar ocorrencias de um usuario")
     void deveListarPorUsuario() {
-        Ocorrencia o = criarOcorrenciaMock(1L, "OC-20261111-0001", StatusOcorrencia.EM_ABERTO, 5L);
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
 
         when(ocorrenciaRepository.findByUsuarioIdOrderByCriadoEmDesc(5L)).thenReturn(List.of(o));
 
