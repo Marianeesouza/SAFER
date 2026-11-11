@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import ufrpe.br.safer.geocodificacao.config.CampusConfig;
 import ufrpe.br.safer.geocodificacao.model.Coordinates;
 import ufrpe.br.safer.geocodificacao.model.Location;
 
@@ -27,7 +28,19 @@ class NominatimAdapterTest {
 	void preparar() {
 		RestClient.Builder builder = RestClient.builder().baseUrl("http://nominatim.test");
 		servidor = MockRestServiceServer.bindTo(builder).build();
-		adapter = new NominatimAdapter(builder.build());
+		adapter = new NominatimAdapter(builder.build(), new CampusConfig(-8.017611, -34.949472, 1200));
+	}
+
+	@Test
+	void buscaPorEnderecoLimitaAAreaDoCampus() {
+		servidor.expect(requestTo(org.hamcrest.Matchers.allOf(
+						org.hamcrest.Matchers.containsString("/search"),
+						org.hamcrest.Matchers.containsString("bounded=1"),
+						org.hamcrest.Matchers.containsString("viewbox="))))
+				.andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+		assertTrue(adapter.buscarPorEndereco("Biblioteca Central").isEmpty());
+		servidor.verify();
 	}
 
 	@Test

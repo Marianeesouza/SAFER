@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SAFER - Cadastro de ocorrência (teste)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SAFER</h1>
+    <p>Cadastro de ocorrência &middot; página de teste do serviço de geocodificação</p>
+  </header>
+
+  <main>
+    <ol class="steps" id="steps">
+      <li class="active"><span>1</span> Dados pessoais</li>
+      <li><span>2</span> Local</li>
+      <li><span>3</span> Descrição</li>
+    </ol>
+
+    <form id="occurrence-form" novalidate>
+
+      <!-- Etapa 1 -->
+      <section class="page active" id="page1">
+        <h2>Seus dados</h2>
+        <label>Nome
+          <input type="text" name="name" required>
+        </label>
+        <label>Celular
+          <input type="tel" name="mobile" required>
+        </label>
+        <label>Telefone fixo (opcional)
+          <input type="tel" name="landline">
+        </label>
+        <label>Relação com a UFRPE
+          <select name="ufrpeRelation" required>
+            <option value="">Selecione...</option>
+            <option>Discente</option>
+            <option>Docente</option>
+            <option>Técnico</option>
+            <option>Terceirizado</option>
+            <option>Visitante</option>
+          </select>
+        </label>
+        <div class="buttons">
+          <button type="button" class="next" data-go="2">Próximo</button>
+        </div>
+      </section>
+
+      <!-- Etapa 2 -->
+      <section class="page" id="page2">
+        <h2>Onde está o animal?</h2>
+        <label>Animal
+          <input type="text" name="animal" placeholder="Ex.: sagui, gambá, cobra" required>
+        </label>
+
+        <label>Endereço ou local
+          <span class="row">
+            <input type="text" id="address" name="address" placeholder="Ex.: Biblioteca Central, UFRPE">
+            <button type="button" id="search" class="secondary">Buscar</button>
+          </span>
+        </label>
+        <p class="hint">Busque pelo nome do local ou clique no mapa para marcar o ponto.</p>
+
+        <div id="map"></div>
+
+        <p id="status" class="status" role="status"></p>
+        <p class="location-info">
+          <span id="coords">Nenhum ponto marcado</span>
+          <span id="campus-badge" class="badge" hidden></span>
+        </p>
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+
+        <label>Referência (opcional)
+          <input type="text" name="reference" placeholder="Ex.: perto do estacionamento">
+        </label>
+        <div class="buttons">
+          <button type="button" class="secondary" data-go="1">Voltar</button>
+          <button type="button" class="next" data-go="3">Próximo</button>
+        </div>
+      </section>
+
+      <!-- Etapa 3 -->
+      <section class="page" id="page3">
+        <h2>Descrição</h2>
+        <label>Descrição do caso
+          <textarea name="description" rows="5" required></textarea>
+        </label>
+        <div class="buttons">
+          <button type="button" class="secondary" data-go="2">Voltar</button>
+          <button type="submit">Enviar (apenas teste)</button>
+        </div>
+      </section>
+    </form>
+
+    <section id="result-box" hidden>
+      <h2>Dados do formulário</h2>
+      <p class="hint">Nada foi enviado a nenhum serviço. Isto é só o que seria cadastrado.</p>
+      <pre id="result"></pre>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>

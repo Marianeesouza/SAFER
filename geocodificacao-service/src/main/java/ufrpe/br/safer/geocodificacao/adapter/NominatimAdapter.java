@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import ufrpe.br.safer.geocodificacao.config.CampusConfig;
 import ufrpe.br.safer.geocodificacao.model.Coordinates;
 import ufrpe.br.safer.geocodificacao.model.Location;
 
@@ -17,10 +18,20 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 	record Lugar(String lat, String lon, String display_name) {
 	}
 
-	private final RestClient http;
+    private static final double SEARCH_AREA_METERS = 6_000;
+	private static final double EARTH_RADIUS_METERS = 6_371_000;
 
-	public NominatimAdapter(RestClient nominatimHttp) {
+	private final RestClient http;
+	private final String viewbox;
+
+	public NominatimAdapter(RestClient nominatimHttp, CampusConfig campus) {
 		this.http = nominatimHttp;
+		// Without a bounded area Nominatim returns the best match in the whole world
+		// (e.g. "Biblioteca Central" -> Porto Alegre). Format: lon1,lat1,lon2,lat2.
+		double dLat = Math.toDegrees(SEARCH_AREA_METERS / EARTH_RADIUS_METERS);
+		double dLon = dLat / Math.cos(Math.toRadians(campus.latitude()));
+		this.viewbox = (campus.longitude() - dLon) + "," + (campus.latitude() + dLat) + ","
+				+ (campus.longitude() + dLon) + "," + (campus.latitude() - dLat);
 	}
 
 	@Override
@@ -31,6 +42,8 @@ public class NominatimAdapter implements ProvedorGeocodificacao {
 							.queryParam("q", endereco)
 							.queryParam("format", "jsonv2")
 							.queryParam("accept-language", "pt-BR")
+							.queryParam("viewbox", viewbox)
+							.queryParam("bounded", 1)
 							.queryParam("limit", 1)
 							.build())
 					.retrieve()
