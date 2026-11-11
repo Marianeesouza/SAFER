@@ -139,10 +139,10 @@ public class OcorrenciasService {
 
     @Transactional
     public OcorrenciaResponseDTO atualizarStatus(Long id, AtualizarStatusDTO dto) {
-        Ocorrencia ocorrencia = buscarComBloqueio(id);
+        StatusOcorrencia novoStatus = StatusOcorrencia.deCodigo(dto.novoStatus());
 
+        Ocorrencia ocorrencia = buscarComBloqueio(id);
         StatusOcorrencia statusAtual = ocorrencia.getStatus();
-        StatusOcorrencia novoStatus = dto.novoStatus();
 
         if (!statusAtual.podeTransitarPara(novoStatus)) {
             throw new TransicaoStatusInvalidaException(

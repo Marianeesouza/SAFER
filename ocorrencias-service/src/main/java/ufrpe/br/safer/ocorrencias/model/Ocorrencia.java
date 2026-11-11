@@ -1,10 +1,9 @@
 package ufrpe.br.safer.ocorrencias.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -46,8 +45,8 @@ public class Ocorrencia {
     @Embedded
     private DadosLocalizacao localizacao;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 40)
+    @Convert(converter = StatusOcorrenciaConverter.class)
+    @Column(nullable = false)
     @Builder.Default
     private StatusOcorrencia status = StatusOcorrencia.EM_ABERTO;
 
