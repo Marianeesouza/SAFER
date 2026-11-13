@@ -161,6 +161,21 @@ public class UsuariosService {
         return UsuarioResponseDTO.fromEntity(atualizado);
     }
 
+    @Transactional
+    public void excluir(String authorizationHeader, Long id) {
+        Usuario solicitante = autenticarPorHeader(authorizationHeader);
+        if (solicitante.getCargo() != Cargo.ADMINISTRADOR) {
+            throw new AcessoNegadoException("Apenas administradores podem excluir usuários.");
+        }
+        if (solicitante.getId().equals(id)) {
+            throw new AcessoNegadoException("Não é permitido excluir o próprio usuário autenticado.");
+        }
+        if (!usuarioRepository.existsById(id)) {
+            throw new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id);
+        }
+        usuarioRepository.deleteById(id);
+    }
+
     private Usuario autenticarPorHeader(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             throw new CredenciaisInvalidasException("Token de autenticação ausente ou inválido.");
