@@ -1,260 +1,382 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SAFER — Sistema de Apoio à Fauna em Emergências da Rural</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAFER · UFRPE</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>SAFER</h1>
-    <p>Sistema de Apoio à Fauna em Emergências da Rural</p>
-    <nav class="top-nav" aria-label="Telas do sistema">
-      <button type="button" class="nav-tab active" data-tab="tab-registrar">1. Registrar Ocorrência (CDU05)</button>
-      <button type="button" class="nav-tab" data-tab="tab-consultar">2. Consultar / Cancelar (CDU06 / CDU08)</button>
-      <button type="button" class="nav-tab" data-tab="tab-analista">3. Painel do Analista (CDU07)</button>
-    </nav>
-  </header>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-  <main>
-    <!-- ==================== ABA 1: REGISTRAR OCORRÊNCIA (CDU05) ==================== -->
-    <section class="tab-panel active" id="tab-registrar">
-      <ol class="steps" id="steps">
-        <li class="active"><span>1</span> Dados pessoais</li>
-        <li><span>2</span> Local</li>
-        <li><span>3</span> Descrição</li>
-      </ol>
+  <!-- PORTAL PÚBLICO (HOME DESLOGADO) -->
+  <div id="public-portal" class="hidden">
+    <header class="public-topbar">
+      <div class="topbar-brand">
+        <span class="brand-badge">SAFER</span>
+        <span class="topbar-subtitle">UFRPE</span>
+      </div>
+      <div class="toolbar">
+        <button type="button" id="btn-public-entrar" class="btn btn-secondary">Entrar</button>
+        <button type="button" id="btn-public-cadastrar" class="btn btn-primary">Criar Conta</button>
+      </div>
+    </header>
 
-      <form id="occurrence-form" novalidate>
-        <!-- Etapa 1 -->
-        <section class="page active" id="page1">
-          <h2>Seus dados</h2>
-          <label>Nome
-            <input type="text" name="name" placeholder="Nome completo" required>
-          </label>
-          <label>E-mail
-            <input type="email" name="email" placeholder="Ex.: seu.email@ufrpe.br" required>
-          </label>
-          <div class="grid-2">
-            <label>Celular
-              <input type="tel" name="mobile" placeholder="Ex.: 81999999999" required>
+    <main class="public-main">
+      <section class="public-hero">
+        <h1>Sistema de Apoio à Fauna em Emergências da Rural</h1>
+        <p>Registre ocorrências de animais em situação de risco no campus ou acompanhe um chamado pelo número de protocolo.</p>
+      </section>
+
+      <section class="public-register-wrap">
+        <article class="card">
+          <div>
+            <h3>Consultar Protocolo</h3>
+            <p class="card-meta">Já registrou uma ocorrência? Consulte o andamento dela através de um protocolo.</p>
+            <form id="form-home-protocolo" class="input-row" style="margin-top: 10px;">
+              <input type="text" id="home-prot-codigo" required placeholder="Ex: OC-20261112-4659EA" />
+              <button type="submit" class="btn btn-primary">Consultar</button>
+            </form>
+          </div>
+
+          <hr class="divider" />
+
+          <h3>Registrar Ocorrência</h3>
+          <p class="card-meta">Informe a localização no mapa do campus e descreva a situação do animal.</p>
+          <form id="home-form-ocorrencia" class="stack-form" style="margin-top: 8px;">
+            <div class="grid-2">
+              <label>
+                Seu nome (opcional)
+                <input type="text" id="home-oc-vis-nome" placeholder="Visitante" />
+              </label>
+              <label>
+                Seu e-mail (opcional)
+                <input type="email" id="home-oc-vis-email" placeholder="visitante@exemplo.com" />
+              </label>
+            </div>
+            <label>
+              Logradouro / Local (obrigatório)
+              <input type="text" id="home-oc-logradouro" required placeholder="Selecione um ponto no mapa..." readonly />
             </label>
-            <label>Telefone fixo (opcional)
-              <input type="tel" name="landline" placeholder="Ex.: 8133206000">
+            <div class="campus-bar">
+              <span id="home-campus-badge" class="status-badge hidden"></span>
+              <span id="home-geo-status" class="card-meta">Clique no mapa para definir o local.</span>
+            </div>
+            <div id="home-map" class="map-box" style="height: 240px;" aria-label="Mapa do campus UFRPE"></div>
+            <div class="grid-2">
+              <label>
+                Latitude (obrigatório)
+                <input type="number" step="any" id="home-oc-lat" required value="-8.0175" />
+              </label>
+              <label>
+                Longitude (obrigatório)
+                <input type="number" step="any" id="home-oc-lng" required value="-34.9492" />
+              </label>
+            </div>
+            <label>
+              Descrição do animal e da situação (obrigatório)
+              <textarea id="home-oc-descricao" rows="3" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
             </label>
-          </div>
-          <div class="grid-2">
-            <label>Relação com a UFRPE
-              <select name="ufrpeRelation" required>
-                <option value="">Selecione...</option>
-                <option>Discente</option>
-                <option>Docente</option>
-                <option>Técnico</option>
-                <option>Terceirizado</option>
-                <option>Visitante</option>
-              </select>
-            </label>
-            <label>ID do Usuário (opcional, p/ teste)
-              <input type="number" name="userId" placeholder="Ex.: 10" min="1">
-            </label>
-          </div>
-          <div class="buttons">
-            <button type="button" class="next" data-go="2">Próximo</button>
-          </div>
-        </section>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Enviar Ocorrência</button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </main>
+  </div>
 
-        <!-- Etapa 2 -->
-        <section class="page" id="page2">
-          <h2>Onde está o animal?</h2>
-          <label>Animal
-            <input type="text" name="animal" placeholder="Ex.: sagui, gambá, cobra, gato" required>
-          </label>
+  <!-- TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO) -->
+  <main id="view-auth" class="auth-wrapper">
+    <section class="auth-card">
+      <header class="auth-header">
+        <span class="brand-badge">UFRPE</span>
+        <h1>SAFER</h1>
+        <p>Sistema de Apoio à Fauna em Emergências da Rural</p>
+      </header>
 
-          <label>Endereço ou local
-            <span class="row">
-              <input type="text" id="address" name="address" placeholder="Ex.: Biblioteca Central, UFRPE">
-              <button type="button" id="search" class="secondary">Buscar</button>
-            </span>
-          </label>
-          <p class="hint">Busque pelo nome do local ou clique no mapa para marcar o ponto.</p>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab-btn active" data-auth-tab="login">Fazer login</button>
+        <button type="button" class="tab-btn" data-auth-tab="cadastro">Criar Conta</button>
+      </div>
 
-          <div id="map"></div>
-
-          <p id="status" class="status" role="status"></p>
-          <p class="location-info">
-            <span id="coords">Nenhum ponto marcado</span>
-            <span id="campus-badge" class="badge" hidden></span>
-          </p>
-          <input type="hidden" name="latitude" id="latitude">
-          <input type="hidden" name="longitude" id="longitude">
-
-          <label>Referência (opcional)
-            <input type="text" name="reference" placeholder="Ex.: perto do estacionamento">
-          </label>
-          <div class="buttons">
-            <button type="button" class="secondary" data-go="1">Voltar</button>
-            <button type="button" class="next" data-go="3">Próximo</button>
-          </div>
-        </section>
-
-        <!-- Etapa 3 -->
-        <section class="page" id="page3">
-          <h2>Descrição</h2>
-          <label>Descrição do caso
-            <textarea name="description" rows="5" placeholder="Descreva a situação do animal, se apresenta ferimentos ou risco imediato..." required></textarea>
-          </label>
-          <div class="buttons">
-            <button type="button" class="secondary" data-go="2">Voltar</button>
-            <button type="submit" id="submit-btn">Registrar ocorrência</button>
-          </div>
-        </section>
+      <form id="form-login" class="stack-form">
+        <label>
+          E-mail institucional
+          <input type="email" id="login-email" required placeholder="nome@ufrpe.br" />
+        </label>
+        <label>
+          Senha
+          <input type="password" id="login-senha" required placeholder="••••••••••" />
+        </label>
+        <button type="submit" class="btn btn-primary">Entrar</button>
       </form>
 
-      <section id="result-box" class="card" hidden>
-        <h2 id="result-title">Ocorrência registrada</h2>
-        <p class="hint" id="result-hint"></p>
-        <div id="result-actions" class="buttons" style="justify-content: flex-start; margin-bottom: .75rem;" hidden>
-          <button type="button" id="btn-ver-criada">Ver detalhes e histórico desta ocorrência</button>
-        </div>
-        <pre id="result"></pre>
-      </section>
-    </section>
+      <div class="divider"></div>
+      <button type="button" id="btn-voltar-app" class="btn btn-ghost" style="width: 100%;">
+        ← Voltar para o home
+      </button>
 
-    <!-- ==================== ABA 2: CONSULTAR / CANCELAR (CDU06 e CDU08) ==================== -->
-    <section class="tab-panel" id="tab-consultar">
-      <div class="card">
-        <h2>Consultar Ocorrência (CDU06)</h2>
-        <p class="hint">Busque pelo código de protocolo, pelo ID da ocorrência ou liste as ocorrências de um usuário.</p>
-
-        <div class="search-grid">
-          <form id="form-busca-protocolo" class="search-box">
-            <label>Por Protocolo
-              <span class="row">
-                <input type="text" id="input-busca-protocolo" placeholder="Ex.: OC-20261111-ABC123" required>
-                <button type="submit">Buscar</button>
-              </span>
-            </label>
-          </form>
-
-          <form id="form-busca-id" class="search-box">
-            <label>Por ID da Ocorrência
-              <span class="row">
-                <input type="number" id="input-busca-id" placeholder="Ex.: 1" min="1" required>
-                <button type="submit">Buscar</button>
-              </span>
-            </label>
-          </form>
-
-          <form id="form-busca-usuario" class="search-box">
-            <label>Minhas Ocorrências (ID do Usuário)
-              <span class="row">
-                <input type="number" id="input-busca-usuario" placeholder="Ex.: 10" min="1" required>
-                <button type="submit" class="secondary">Listar</button>
-              </span>
-            </label>
-          </form>
-        </div>
-
-        <p id="consulta-feedback" class="status" role="status"></p>
-      </div>
-
-      <!-- Lista de ocorrências do usuário (quando busca por usuarioId) -->
-      <div id="usuario-ocorrencias-box" class="card" hidden>
-        <h3 id="usuario-ocorrencias-titulo">Ocorrências do Usuário</h3>
-        <div id="usuario-ocorrencias-lista" class="occ-list"></div>
-      </div>
-
-      <!-- Detalhes da ocorrência + Histórico + Cancelamento (CDU06 e CDU08) -->
-      <div id="detalhe-ocorrencia-box" class="card" hidden>
-        <div class="card-header">
-          <div>
-            <h2 id="det-protocolo">OC-00000000-000000</h2>
-            <p class="hint" id="det-subtitulo"></p>
-          </div>
-          <span id="det-status-badge" class="status-pill"></span>
-        </div>
-
-        <div class="detail-grid">
-          <div class="detail-item">
-            <strong>Descrição / Animal</strong>
-            <p id="det-animal"></p>
-          </div>
-          <div class="detail-item">
-            <strong>Localização</strong>
-            <p id="det-localizacao"></p>
-          </div>
-          <div class="detail-item">
-            <strong>Comunicante</strong>
-            <p id="det-comunicante"></p>
-          </div>
-          <div class="detail-item">
-            <strong>Atendimento</strong>
-            <p id="det-atendimento"></p>
-          </div>
-        </div>
-
-        <hr class="divider">
-
-        <h3>Histórico de Status (Linha do Tempo)</h3>
-        <ul id="det-historico" class="timeline"></ul>
-
-        <!-- Seção de Cancelamento (CDU08) -->
-        <div id="box-cancelamento" class="cancel-section">
-          <h3>Cancelar Ocorrência (CDU08)</h3>
-          <p class="hint" id="cancel-hint">O cancelamento é permitido enquanto a ocorrência estiver com status <strong>EM_ABERTO</strong>, mediante justificativa obrigatória.</p>
-          <form id="form-cancelar">
-            <div class="grid-2">
-              <label>ID do Usuário solicitante
-                <input type="number" id="cancel-usuario-id" value="10" min="1" required>
-              </label>
-              <label>Justificativa do cancelamento
-                <input type="text" id="cancel-justificativa" placeholder="Ex.: O animal se deslocou sozinho para a mata" required>
-              </label>
-            </div>
-            <p id="cancel-feedback" class="status" role="status"></p>
-            <div class="buttons">
-              <button type="submit" class="danger" id="btn-cancelar-ocorrencia">Confirmar Cancelamento</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== ABA 3: PAINEL DO ANALISTA (CDU07) ==================== -->
-    <section class="tab-panel" id="tab-analista">
-      <div class="card">
-        <h2>Gerenciar Ocorrências — Painel do Analista (CDU07)</h2>
-        <div class="toolbar">
-          <label class="inline-label">Meu ID de Analista:
-            <input type="number" id="analista-id-input" value="99" min="1">
+      <form id="form-cadastro" class="stack-form hidden">
+        <label>
+          Nome completo
+          <input type="text" id="cad-nome" required maxlength="150" placeholder="Maria Silva" />
+        </label>
+        <label>
+          E-mail
+          <input type="email" id="cad-email" required maxlength="180" placeholder="maria@ufrpe.br" />
+        </label>
+        <label>
+          Vínculo com a UFRPE
+          <select id="cad-relacao" required>
+            <option value="DISCENTE">Discente</option>
+            <option value="DOCENTE">Docente</option>
+            <option value="TECNICO">Técnico</option>
+            <option value="TERCEIRIZADO">Terceirizado</option>
+            <option value="VISITANTE">Visitante</option>
+          </select>
+        </label>
+        <div class="grid-2">
+          <label>
+            Celular (opcional)
+            <input type="text" id="cad-celular" maxlength="20" placeholder="(81) 99999-9999" />
           </label>
-
-          <label class="inline-label">Filtrar por Status:
-            <select id="filtro-status-select">
-              <option value="EM_ABERTO">Apenas EM_ABERTO (Triagem)</option>
-              <option value="">Todas as ocorrências</option>
-              <option value="EM_ATENDIMENTO">EM_ATENDIMENTO</option>
-              <option value="NECESSITA_ATENDIMENTO_MEDICO">NECESSITA_ATENDIMENTO_MEDICO</option>
-              <option value="FINALIZADO_COM_SUCESSO">FINALIZADO_COM_SUCESSO</option>
-              <option value="FINALIZADO_COM_COMPLICACOES">FINALIZADO_COM_COMPLICACOES</option>
-              <option value="CANCELADO">CANCELADO</option>
-            </select>
+          <label>
+            Telefone fixo (opcional)
+            <input type="text" id="cad-fixo" maxlength="20" placeholder="(81) 3320-0000" />
           </label>
-
-          <button type="button" id="btn-atualizar-painel">Atualizar Lista</button>
         </div>
-        <p id="analista-feedback" class="status" role="status"></p>
-      </div>
-
-      <div id="analista-lista" class="occ-list"></div>
+        <label>
+          Senha (mín. 10 caracteres, maiúscula, minúscula, número e especial)
+          <input type="password" id="cad-senha" required placeholder="SenhaForte@123" />
+        </label>
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+      </form>
     </section>
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- APLICAÇÃO AUTENTICADA -->
+  <div id="app-shell" class="hidden">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="brand-badge">SAFER</span>
+        <span class="topbar-subtitle">UFRPE</span>
+      </div>
+
+      <nav class="topbar-nav" aria-label="Navegação principal">
+        <button type="button" class="nav-btn active" id="nav-ocorrencias" data-view="ocorrencias">Ocorrências</button>
+        <button type="button" class="nav-btn" id="nav-minhas" data-view="minhas">Minhas Ocorrências</button>
+        <button type="button" class="nav-btn" id="nav-registrar" data-view="registrar">Registrar Ocorrência</button>
+        <button type="button" class="nav-btn" id="nav-protocolo" data-view="protocolo">Consultar Protocolo</button>
+        <button type="button" class="nav-btn" id="nav-perfil" data-view="perfil">Meu Perfil</button>
+        <button type="button" class="nav-btn hidden" id="nav-usuarios" data-view="usuarios">Gestão de Usuários</button>
+      </nav>
+
+      <div class="topbar-user">
+        <span id="user-badge" class="user-badge hidden"></span>
+        <button type="button" id="btn-logout" class="btn btn-ghost">Sair</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- VIEW: OCORRÊNCIAS EM CARDS -->
+      <section id="view-ocorrencias" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2>Ocorrências</h2>
+            <p>Acompanhe os chamados abertos e em andamento no campus.</p>
+          </div>
+          <div class="toolbar">
+            <select id="filtro-status" aria-label="Filtrar por status">
+              <option value="TODAS">Todas</option>
+              <option value="EM_ABERTO" selected>Em Aberto</option>
+              <option value="EM_ATENDIMENTO">Em Atendimento</option>
+              <option value="NECESSITA_ATENDIMENTO_MEDICO">Necessita Atendimento Médico</option>
+              <option value="FINALIZADO_COM_SUCESSO">Finalizado com Sucesso</option>
+              <option value="FINALIZADO_COM_COMPLICACOES">Finalizado com Complicações</option>
+              <option value="CANCELADO">Canceladas</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="ocorrencias-grid" class="cards-grid"></div>
+      </section>
+
+      <!-- VIEW: REGISTRAR OCORRÊNCIA -->
+      <section id="view-registrar" class="view-section hidden">
+        <div class="section-header">
+          <div>
+            <h2>Registrar Ocorrência</h2>
+            <p>Informe os detalhes e a localização do incidente no campus.</p>
+          </div>
+        </div>
+
+        <form id="form-ocorrencia" class="panel stack-form">
+          <div id="visitante-campos" class="grid-2 hidden">
+            <label>
+              Seu nome (opcional)
+              <input type="text" id="oc-vis-nome" placeholder="Visitante" />
+            </label>
+            <label>
+              Seu e-mail para contato (opcional)
+              <input type="email" id="oc-vis-email" placeholder="visitante@exemplo.com" />
+            </label>
+          </div>
+          <label>
+            Logradouro / Local (obrigatório)
+            <input type="text" id="oc-logradouro" required placeholder="Selecione um ponto no mapa..." readonly />
+          </label>
+
+          <label>
+            Ponto de referência
+            <input type="text" id="oc-referencia" placeholder="Próximo ao CEGOE" />
+          </label>
+
+          <div class="campus-bar">
+            <span id="campus-badge" class="status-badge hidden"></span>
+            <span id="geo-status" class="card-meta">Clique no mapa para definir o local e validar se está no campus da UFRPE.</span>
+          </div>
+          <div id="map" class="map-box" aria-label="Mapa do campus UFRPE para seleção de coordenadas"></div>
+
+          <div class="grid-2">
+            <label>
+              Latitude (obrigatório)
+              <input type="number" step="any" id="oc-lat" required value="-8.0175" />
+            </label>
+            <label>
+              Longitude (obrigatório)
+              <input type="number" step="any" id="oc-lng" required value="-34.9492" />
+            </label>
+          </div>
+
+          <label>
+            Descrição do animal e da situação (obrigatório)
+            <textarea id="oc-descricao" rows="4" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Ocorrência</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- VIEW: CONSULTAR PROTOCOLO (CDU06 PÚBLICO) -->
+      <section id="view-protocolo" class="view-section hidden">
+        <div class="section-header">
+          <div>
+            <h2>Consultar Protocolo</h2>
+            <p>Acompanhe o andamento de uma ocorrência informando o número de protocolo.</p>
+          </div>
+        </div>
+
+        <form id="form-protocolo" class="panel stack-form">
+          <div class="input-row">
+            <input type="text" id="prot-codigo" required placeholder="Ex: OC-20261112-4659EA" />
+            <button type="submit" class="btn btn-primary">Consultar</button>
+          </div>
+        </form>
+
+        <div id="protocolo-resultado" class="cards-grid" style="margin-top: 16px;"></div>
+      </section>
+
+      <!-- VIEW: MEU PERFIL (CDU03) -->
+      <section id="view-perfil" class="view-section hidden">
+        <div class="section-header">
+          <div>
+            <h2>Meu Perfil</h2>
+            <p>Atualize seus dados cadastrais. Para alterar e-mail ou senha, confirme a senha atual.</p>
+          </div>
+        </div>
+
+        <form id="form-perfil" class="panel stack-form">
+          <div class="grid-2">
+            <label>
+              Nome completo
+              <input type="text" id="perf-nome" required maxlength="150" />
+            </label>
+            <label>
+              Vínculo com a UFRPE
+              <select id="perf-relacao" required>
+                <option value="DISCENTE">Discente</option>
+                <option value="DOCENTE">Docente</option>
+                <option value="TECNICO">Técnico</option>
+                <option value="TERCEIRIZADO">Terceirizado</option>
+                <option value="VISITANTE">Visitante</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-2">
+            <label>
+              Celular
+              <input type="text" id="perf-celular" maxlength="20" />
+            </label>
+            <label>
+              Telefone fixo
+              <input type="text" id="perf-fixo" maxlength="20" />
+            </label>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="grid-2">
+            <label>
+              E-mail
+              <input type="email" id="perf-email" maxlength="180" />
+            </label>
+            <label>
+              Nova senha (opcional)
+              <input type="password" id="perf-nova-senha" placeholder="Deixe em branco para manter" />
+            </label>
+          </div>
+
+          <label>
+            Senha atual (obrigatória apenas se alterar e-mail ou senha)
+            <input type="password" id="perf-senha-atual" placeholder="••••••••••" />
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- VIEW: GESTÃO DE USUÁRIOS (ADMINISTRADOR) -->
+      <section id="view-usuarios" class="view-section hidden">
+        <div class="section-header">
+          <div>
+            <h2>Gestão de Usuários</h2>
+            <p>Gerencie os cargos dos usuários cadastrados no sistema (RN04).</p>
+          </div>
+          <div class="toolbar">
+            <input type="text" id="filtro-usuario-busca" placeholder="Buscar por nome ou e-mail..." style="width: 220px;" />
+            <select id="filtro-usuario-cargo" aria-label="Filtrar por cargo" style="width: 160px;">
+              <option value="TODOS">Todos os cargos</option>
+              <option value="COMUM">COMUM</option>
+              <option value="ANALISTA">ANALISTA</option>
+              <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+            </select>
+            <button type="button" id="btn-novo-usuario" class="btn btn-primary">+ Novo Usuário</button>
+          </div>
+        </div>
+
+        <div id="usuarios-grid" class="cards-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-detalhes" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-titulo">Detalhes da Ocorrência</h3>
+        <button type="button" id="btn-fechar-modal" class="btn btn-ghost" aria-label="Fechar">✕</button>
+      </div>
+      <div id="modal-conteudo" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
