@@ -53,6 +53,12 @@ public class Ocorrencia {
     @Column(name = "analista_responsavel_id")
     private Long analistaResponsavelId;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "ocorrencia_imagens", joinColumns = @JoinColumn(name = "ocorrencia_id"))
+    @Column(name = "imagem_url", columnDefinition = "TEXT")
+    @Builder.Default
+    private java.util.List<String> imagens = new java.util.ArrayList<>();
+
     @Version
     @Column(nullable = false)
     @Builder.Default

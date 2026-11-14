@@ -17,7 +17,8 @@ public record OcorrenciaDetalhadaDTO(
         Long analistaResponsavelId,
         LocalDateTime criadoEm,
         LocalDateTime atualizadoEm,
-        List<HistoricoOcorrenciaDTO> historico
+        List<HistoricoOcorrenciaDTO> historico,
+        List<String> imagens
 ) {
     public static OcorrenciaDetalhadaDTO fromEntity(Ocorrencia o, List<HistoricoOcorrenciaDTO> historico) {
         return new OcorrenciaDetalhadaDTO(
@@ -31,7 +32,8 @@ public record OcorrenciaDetalhadaDTO(
                 o.getAnalistaResponsavelId(),
                 o.getCriadoEm(),
                 o.getAtualizadoEm(),
-                historico
+                historico,
+                o.getImagens() != null ? List.copyOf(o.getImagens()) : List.of()
         );
     }
 }

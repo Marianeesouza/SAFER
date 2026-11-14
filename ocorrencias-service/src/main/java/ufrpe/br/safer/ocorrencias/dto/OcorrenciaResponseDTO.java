@@ -4,6 +4,7 @@ import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record OcorrenciaResponseDTO(
         Long id,
@@ -15,7 +16,8 @@ public record OcorrenciaResponseDTO(
         StatusOcorrencia status,
         Long analistaResponsavelId,
         LocalDateTime criadoEm,
-        LocalDateTime atualizadoEm
+        LocalDateTime atualizadoEm,
+        List<String> imagens
 ) {
     public static OcorrenciaResponseDTO fromEntity(Ocorrencia o) {
         return new OcorrenciaResponseDTO(
@@ -28,7 +30,8 @@ public record OcorrenciaResponseDTO(
                 o.getStatus(),
                 o.getAnalistaResponsavelId(),
                 o.getCriadoEm(),
-                o.getAtualizadoEm()
+                o.getAtualizadoEm(),
+                o.getImagens() != null ? List.copyOf(o.getImagens()) : List.of()
         );
     }
 }
