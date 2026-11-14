@@ -84,7 +84,8 @@ function renderAppState() {
       const view = btn.dataset.view;
       btn.classList.toggle("hidden", view !== "registrar" && view !== "protocolo");
     });
-    el("btn-logout").textContent = "← Voltar para Home";
+    const logoutSpan = el("btn-logout").querySelector("span");
+    if (logoutSpan) logoutSpan.textContent = "← Voltar para Home";
     switchView("registrar");
     return;
   }
@@ -95,21 +96,23 @@ function renderAppState() {
     const view = btn.dataset.view;
     if (view === "usuarios") {
       btn.classList.toggle("hidden", cargo !== "ADMINISTRADOR");
-    } else if (view === "ocorrencias") {
-      btn.classList.toggle("hidden", !isStaff);
     } else {
       btn.classList.remove("hidden");
     }
   });
+  const btnTodas = el("btn-escopo-todas");
+  if (btnTodas) btnTodas.classList.toggle("hidden", !isStaff);
+  apenasMinhasAtivo = !isStaff;
 
-  el("btn-logout").textContent = "Sair";
+  const logoutSpan = el("btn-logout").querySelector("span");
+  if (logoutSpan) logoutSpan.textContent = "Sair";
 
   preencherPerfilForm();
-  switchView(isStaff ? "ocorrencias" : "minhas");
+  switchView("ocorrencias");
 }
 
 function switchView(viewName) {
-  const secId = viewName === "minhas" ? "view-ocorrencias" : `view-${viewName}`;
+  const secId = `view-${viewName}`;
   document.querySelectorAll(".view-section").forEach((sec) => {
     sec.classList.toggle("hidden", sec.id !== secId);
   });
@@ -117,8 +120,7 @@ function switchView(viewName) {
     btn.classList.toggle("active", btn.dataset.view === viewName);
   });
 
-  if (viewName === "ocorrencias") carregarOcorrencias(false);
-  if (viewName === "minhas") carregarOcorrencias(true);
+  if (viewName === "ocorrencias") carregarOcorrencias(apenasMinhasAtivo);
   if (viewName === "usuarios") carregarUsuarios();
   if (viewName === "registrar") initMap();
 }
@@ -225,13 +227,13 @@ el("btn-logout").addEventListener("click", () => {
 el("btn-public-entrar").addEventListener("click", () => {
   state.mostrarAuth = true;
   renderAppState();
-  document.querySelector('[data-auth-tab="login"]').click();
+  el("auth-slider-card")?.classList.remove("right-panel-active");
 });
 
 el("btn-public-cadastrar").addEventListener("click", () => {
   state.mostrarAuth = true;
   renderAppState();
-  document.querySelector('[data-auth-tab="cadastro"]').click();
+  el("auth-slider-card")?.classList.add("right-panel-active");
 });
 
 let homeMapInstance = null;
@@ -406,7 +408,7 @@ el("form-cadastro").addEventListener("submit", async (e) => {
       }),
     });
     showToast("Conta criada! Faça login para continuar.");
-    document.querySelector('[data-auth-tab="login"]').click();
+    el("auth-slider-card")?.classList.remove("right-panel-active");
     el("login-email").value = el("cad-email").value;
   } catch (err) {
     showToast(err.message, "error");
@@ -418,6 +420,10 @@ let apenasMinhasAtivo = false;
 
 async function carregarOcorrencias(apenasMinhas = apenasMinhasAtivo) {
   apenasMinhasAtivo = apenasMinhas;
+  const btnTodas = el("btn-escopo-todas");
+  const btnMinhas = el("btn-escopo-minhas");
+  if (btnTodas) btnTodas.classList.toggle("active", !apenasMinhas);
+  if (btnMinhas) btnMinhas.classList.toggle("active", apenasMinhas);
   const grid = el("ocorrencias-grid");
   const titulo = document.querySelector("#view-ocorrencias .section-header h2");
   if (titulo) {
@@ -430,7 +436,16 @@ async function carregarOcorrencias(apenasMinhas = apenasMinhasAtivo) {
     if (apenasMinhas && state.usuario) {
       endpoint = `${API.ocorrencias}/usuario/${state.usuario.id}`;
     } else if (filtro !== "TODAS") {
-      endpoint = `${API.ocorrencias}?status=${encodeURIComponent(filtro)}`;
+      const STATUS_CODIGO = {
+        EM_ABERTO: 1,
+        EM_ATENDIMENTO: 2,
+        NECESSITA_ATENDIMENTO_MEDICO: 3,
+        FINALIZADO_COM_SUCESSO: 4,
+        FINALIZADO_COM_COMPLICACOES: 5,
+        CANCELADO: 6,
+      };
+      const codigoStatus = STATUS_CODIGO[filtro] ?? filtro;
+      endpoint = `${API.ocorrencias}?status=${encodeURIComponent(codigoStatus)}`;
     }
     const lista = await apiFetch(endpoint);
     const filtradas =
@@ -519,15 +534,31 @@ async function abrirDetalhesOcorrencia(id) {
     const coords = lat != null && lng != null ? `${lat}, ${lng}` : "-";
     const historicoHtml =
       det.historico && det.historico.length
-        ? `<ul class="historico-list">${det.historico
-            .map(
-              (h) => `
-            <li class="historico-item">
-              <strong>${h.statusRegistrado || h.statusNovo || h.statusAtual || det.status}</strong>
-              <div class="card-meta">Usuário #${h.usuarioId ?? "-"} · ${h.dataHora || ""} ${h.observacao ? "· " + h.observacao : ""}</div>
-            </li>`
-            )
-            .join("")}</ul>`
+        ? `<div class="zz-timeline">${det.historico
+            .map((h, idx) => {
+              const st = h.statusRegistrado || h.statusNovo || h.statusAtual || det.status;
+              const isLast = idx === det.historico.length - 1;
+              const isConcluido =
+                !isLast ||
+                ["FINALIZADO_COM_SUCESSO", "FINALIZADO_COM_COMPLICACOES", "CANCELADO"].includes(st);
+              const side = idx % 2 === 0 ? "right" : "left";
+              const dataFmt = h.dataHora ? new Date(h.dataHora).toLocaleString("pt-BR") : "";
+              const iconSvg = isConcluido
+                ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+                : `<span class="zz-dot-inner"></span>`;
+              return `
+            <div class="zz-item ${side} ${isLast ? "current" : ""} ${isConcluido ? "done" : ""}">
+              <div class="zz-marker">${iconSvg}</div>
+              <div class="zz-card-wrap">
+                <span class="zz-date-pill">${dataFmt}</span>
+                <div class="zz-card">
+                  <div class="zz-card-title"><span class="status-badge status-${st}">${st}</span></div>
+                  <div class="card-meta">Usuário #${h.usuarioId ?? "-"}${h.observacao ? " · " + h.observacao : ""}</div>
+                </div>
+              </div>
+            </div>`;
+            })
+            .join("")}</div>`
         : "<p class='card-meta'>Sem registros de histórico.</p>";
 
     const temCoords = lat != null && lng != null;
@@ -567,7 +598,7 @@ async function assumirOcorrencia(id) {
       method: "POST",
       body: JSON.stringify({ analistaId: state.usuario.id }),
     });
-    showToast(`Ocorrência #${id} assumida!`);
+    showToast(`Ocorrência #${id} assumida com sucesso!`);
     carregarOcorrencias();
   } catch (err) {
     showToast(err.message, "error");
@@ -665,7 +696,9 @@ function cancelarOcorrencia(id) {
   });
 }
 
-el("filtro-status").addEventListener("change", carregarOcorrencias);
+el("filtro-status").addEventListener("change", () => carregarOcorrencias());
+el("btn-escopo-todas").addEventListener("click", () => carregarOcorrencias(false));
+el("btn-escopo-minhas").addEventListener("click", () => carregarOcorrencias(true));
 
 // Registrar Ocorrência
 el("form-ocorrencia").addEventListener("submit", async (e) => {
@@ -695,37 +728,13 @@ el("form-ocorrencia").addEventListener("submit", async (e) => {
     abrirModalProtocoloCriado(criada.protocolo || `#${criada.id}`);
     el("form-ocorrencia").reset();
     if (state.usuario) {
-      switchView(state.usuario.cargo === "COMUM" ? "minhas" : "ocorrencias");
+      switchView("ocorrencias");
     }
   } catch (err) {
     showToast(err.message, "error");
   }
 });
 
-// Consultar Protocolo
-el("form-protocolo").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const res = el("protocolo-resultado");
-  const codigo = el("prot-codigo").value.trim();
-  if (!codigo) return;
-  res.innerHTML = "<p class='card-meta'>Consultando protocolo...</p>";
-  try {
-    const oc = await apiFetch(`${API.ocorrencias}/protocolo/${encodeURIComponent(codigo)}`);
-    res.innerHTML = `
-      <article class="card">
-        <div class="card-top">
-          <span class="card-title">${oc.protocolo || "#" + oc.id}</span>
-          <span class="status-badge status-${oc.status}">${oc.status}</span>
-        </div>
-        <p>${oc.descricaoAnimal || ""}</p>
-        <p class="card-meta"><strong>Local:</strong> ${oc.localizacao?.endereco || "-"}</p>
-        <p class="card-meta"><strong>Analista:</strong> ${oc.analistaResponsavelId ?? "Não atribuído"}</p>
-      </article>
-    `;
-  } catch (err) {
-    res.innerHTML = `<p class='card-meta'>${err.message}</p>`;
-  }
-});
 
 // Meu Perfil
 function preencherPerfilForm() {
@@ -963,4 +972,190 @@ function abrirModalExcluirUsuario(usuario) {
   } catch {
     setSession(null, null);
   }
+})();
+
+// Toggle barra lateral recolhível
+const btnToggleSidebar = el("btn-toggle-sidebar");
+if (btnToggleSidebar) {
+  btnToggleSidebar.addEventListener("click", () => {
+    const shell = el("app-shell");
+    const collapsed = shell.classList.toggle("sidebar-collapsed");
+    btnToggleSidebar.title = collapsed ? "Expandir barra lateral" : "Recolher barra lateral";
+    btnToggleSidebar.setAttribute("aria-label", btnToggleSidebar.title);
+    btnToggleSidebar.innerHTML = collapsed
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>';
+  });
+}
+
+// Animação letra por letra nos títulos de seção
+function animarTituloPorLetra(h2) {
+  if (!h2) return;
+  const texto = (h2.dataset.rawTitle || h2.textContent || "").trim();
+  h2.dataset.rawTitle = texto;
+  h2.innerHTML = [...texto]
+    .map((ch, i) => {
+      const charHtml = ch === " " ? "&nbsp;" : ch;
+      return `<span class="char-rise" style="animation-delay:${i * 14}ms">${charHtml}</span>`;
+    })
+    .join("");
+}
+
+document.querySelectorAll(".nav-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const view = btn.dataset.view;
+    if (view) {
+      const h2 = document.querySelector(`#view-${view} .section-header h2`);
+      setTimeout(() => animarTituloPorLetra(h2), 0);
+    }
+  });
+});
+
+animarTituloPorLetra(document.querySelector("#view-ocorrencias .section-header h2"));
+
+// Indicador elástico na barra lateral (estica até o destino e encolhe)
+(function initSidebarIndicator() {
+  const nav = document.querySelector(".topbar-nav");
+  if (!nav) return;
+  const indicator = document.createElement("div");
+  indicator.className = "nav-indicator";
+  nav.prepend(indicator);
+
+  let currentTop = null;
+  let currentHeight = null;
+
+  function placeImmediate(btn) {
+    if (!btn) return;
+    currentTop = btn.offsetTop;
+    currentHeight = btn.offsetHeight;
+    indicator.style.top = `${currentTop}px`;
+    indicator.style.height = `${currentHeight}px`;
+  }
+
+  function animateTo(btn) {
+    if (!btn) return;
+    const targetTop = btn.offsetTop;
+    const targetHeight = btn.offsetHeight;
+    if (currentTop === null) {
+      placeImmediate(btn);
+      return;
+    }
+    const stretchTop = Math.min(currentTop, targetTop);
+    const stretchBottom = Math.max(currentTop + currentHeight, targetTop + targetHeight);
+    indicator.style.top = `${stretchTop}px`;
+    indicator.style.height = `${stretchBottom - stretchTop}px`;
+
+    setTimeout(() => {
+      currentTop = targetTop;
+      currentHeight = targetHeight;
+      indicator.style.top = `${targetTop}px`;
+      indicator.style.height = `${targetHeight}px`;
+    }, 210);
+  }
+
+  nav.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => animateTo(btn));
+  });
+
+  const activeBtn = nav.querySelector(".nav-btn.active");
+  requestAnimationFrame(() => placeImmediate(activeBtn));
+})();
+
+// Pill deslizante entre Todas e Minhas Ocorrências
+(function initScopePill() {
+  const tabs = document.querySelector(".scope-tabs");
+  if (!tabs) return;
+  const pill = document.createElement("div");
+  pill.className = "scope-pill";
+  tabs.prepend(pill);
+
+  function syncScopePill() {
+    const active = tabs.querySelector(".scope-btn.active:not(.hidden)") || tabs.querySelector(".scope-btn:not(.hidden)");
+    if (!active) return;
+    pill.style.left = `${active.offsetLeft}px`;
+    pill.style.width = `${active.offsetWidth}px`;
+  }
+
+  tabs.querySelectorAll(".scope-btn").forEach((btn) => {
+    btn.addEventListener("click", () => requestAnimationFrame(syncScopePill));
+  });
+
+  window.addEventListener("resize", syncScopePill);
+  requestAnimationFrame(syncScopePill);
+})();
+
+// Sliding overlay entre Login e Criar Conta
+(function initAuthSlider() {
+  const slider = el("auth-slider-card");
+  const btnGoCad = el("btn-go-cadastro");
+  const btnGoLogin = el("btn-go-login");
+  if (!slider) return;
+  if (btnGoCad) btnGoCad.addEventListener("click", () => slider.classList.add("right-panel-active"));
+  if (btnGoLogin) btnGoLogin.addEventListener("click", () => slider.classList.remove("right-panel-active"));
+})();
+
+// Olhinho de senha (login, cadastro e confirmar senha)
+document.querySelectorAll(".toggle-pass").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const input = el(btn.dataset.target);
+    if (!input) return;
+    const isPass = input.type === "password";
+    input.type = isPass ? "text" : "password";
+    btn.innerHTML = isPass
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  });
+});
+
+// Checklist em tempo real da senha no cadastro
+const cadSenhaInput = el("cad-senha");
+const cadSenhaRules = el("cad-senha-rules");
+if (cadSenhaInput && cadSenhaRules) {
+  cadSenhaInput.addEventListener("input", () => {
+    const v = cadSenhaInput.value;
+    const checks = {
+      len: v.length >= 10,
+      upper: /[A-Z]/.test(v),
+      lower: /[a-z]/.test(v),
+      num: /\d/.test(v),
+      spec: /[^A-Za-z0-9]/.test(v),
+    };
+    Object.entries(checks).forEach(([rule, ok]) => {
+      const li = cadSenhaRules.querySelector(`li[data-rule="${rule}"]`);
+      if (!li) return;
+      li.classList.toggle("valid", ok);
+      const icon = li.querySelector(".rule-icon");
+      if (icon) icon.textContent = ok ? "✓" : "✕";
+    });
+  });
+}
+
+// Validar confirmação de senha antes do envio do cadastro
+const formCadastroEl = el("form-cadastro");
+if (formCadastroEl) {
+  formCadastroEl.addEventListener(
+    "submit",
+    (e) => {
+      const s1 = el("cad-senha")?.value || "";
+      const s2 = el("cad-confirmar-senha")?.value || "";
+      if (s1 !== s2) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        showToast("As senhas não coincidem.", "error");
+      }
+    },
+    true
+  );
+}
+
+// Carrossel crossfade no painel do Login/Cadastro
+(function initOverlayCarousel() {
+  const slides = document.querySelectorAll("#overlay-carousel .overlay-slide");
+  if (slides.length < 2) return;
+  let idx = 0;
+  setInterval(() => {
+    slides[idx].classList.remove("active");
+    idx = (idx + 1) % slides.length;
+    slides[idx].classList.add("active");
+  }, 5000);
 })();

@@ -29,7 +29,7 @@
         <p>Registre ocorrências de animais em situação de risco no campus ou acompanhe um chamado pelo número de protocolo.</p>
       </section>
 
-      <section class="public-register-wrap">
+      <section class="public-register-wrap home-layout">
         <article class="card">
           <div>
             <h3>Consultar Protocolo</h3>
@@ -83,6 +83,44 @@
             </div>
           </form>
         </article>
+
+        <aside class="home-aside">
+          <div class="panel home-info-card">
+            <h3>Como funciona</h3>
+            <ol class="home-steps">
+              <li>
+                <span class="step-num">1</span>
+                <div>
+                  <strong>Registre a ocorrência</strong>
+                  <p>Marque o local no mapa do campus e descreva a situação do animal.</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <div>
+                  <strong>Guarde o protocolo</strong>
+                  <p>Ao enviar, você recebe um código único para acompanhar o chamado.</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <div>
+                  <strong>Acompanhe o atendimento</strong>
+                  <p>Consulte o protocolo a qualquer momento para ver o andamento.</p>
+                </div>
+              </li>
+            </ol>
+          </div>
+
+          <div class="panel home-info-card home-tips-card">
+            <h3>Orientações de segurança</h3>
+            <ul class="home-tips">
+              <li>Não tente conter ou capturar animais silvestres feridos.</li>
+              <li>Mantenha distância segura e evite aglomeração ao redor.</li>
+              <li>Se possível, informe um ponto de referência próximo ao local.</li>
+            </ul>
+          </div>
+        </aside>
       </section>
     </main>
   </div>
@@ -96,63 +134,128 @@
         <p>Sistema de Apoio à Fauna em Emergências da Rural</p>
       </header>
 
-      <div class="tabs" role="tablist">
-        <button type="button" class="tab-btn active" data-auth-tab="login">Fazer login</button>
-        <button type="button" class="tab-btn" data-auth-tab="cadastro">Criar Conta</button>
+      <div class="auth-slider-card" id="auth-slider-card">
+        <div class="form-container sign-in-container">
+          <form id="form-login" class="stack-form">
+            <h2>Fazer login</h2>
+            <label>
+              E-mail institucional
+              <input type="email" id="login-email" required placeholder="nome@ufrpe.br" />
+            </label>
+            <label>
+              Senha
+              <div class="password-wrap">
+                <input type="password" id="login-senha" required placeholder="••••••••••" />
+                <button type="button" class="toggle-pass" data-target="login-senha" aria-label="Mostrar senha" title="Mostrar/ocultar senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </label>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+          </form>
+        </div>
+
+        <div class="form-container sign-up-container">
+          <form id="form-cadastro" class="stack-form">
+            <h2>Criar Conta</h2>
+            <label>
+              Nome completo
+              <input type="text" id="cad-nome" required maxlength="150" placeholder="Maria Silva" />
+            </label>
+            <label>
+              E-mail
+              <input type="email" id="cad-email" required maxlength="180" placeholder="maria@ufrpe.br" />
+            </label>
+            <label>
+              Vínculo com a UFRPE
+              <select id="cad-relacao" required>
+                <option value="DISCENTE">Discente</option>
+                <option value="DOCENTE">Docente</option>
+                <option value="TECNICO">Técnico</option>
+                <option value="TERCEIRIZADO">Terceirizado</option>
+                <option value="VISITANTE">Visitante</option>
+              </select>
+            </label>
+            <div class="grid-2">
+              <label>
+                Celular (opcional)
+                <input type="text" id="cad-celular" maxlength="20" placeholder="(81) 99999-9999" />
+              </label>
+              <label>
+                Telefone fixo (opcional)
+                <input type="text" id="cad-fixo" maxlength="20" placeholder="(81) 3320-0000" />
+              </label>
+            </div>
+            <label>
+              Senha
+              <div class="password-wrap">
+                <input type="password" id="cad-senha" required placeholder="SenhaForte@123" />
+                <button type="button" class="toggle-pass" data-target="cad-senha" aria-label="Mostrar senha" title="Mostrar/ocultar senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </label>
+            <ul class="pass-rules" id="cad-senha-rules">
+              <li data-rule="len"><span class="rule-icon">✕</span> Mínimo de 10 caracteres</li>
+              <li data-rule="upper"><span class="rule-icon">✕</span> Pelo menos 1 letra maiúscula</li>
+              <li data-rule="lower"><span class="rule-icon">✕</span> Pelo menos 1 letra minúscula</li>
+              <li data-rule="num"><span class="rule-icon">✕</span> Pelo menos 1 número</li>
+              <li data-rule="spec"><span class="rule-icon">✕</span> Pelo menos 1 caractere especial</li>
+            </ul>
+            <label>
+              Confirmar senha
+              <div class="password-wrap">
+                <input type="password" id="cad-confirmar-senha" required placeholder="Repita a senha" />
+                <button type="button" class="toggle-pass" data-target="cad-confirmar-senha" aria-label="Mostrar senha" title="Mostrar/ocultar senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </label>
+            <button type="submit" class="btn btn-primary">Cadastrar</button>
+          </form>
+        </div>
+
+        <div class="overlay-container">
+          <div class="overlay">
+            <div class="overlay-carousel" id="overlay-carousel" aria-hidden="true">
+              <div class="overlay-slide active" style="background-image: url('assets/fauna-1.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-2.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-3.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-4.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-5.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-6.jpg');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-7.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-8.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-9.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-10.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-11.jpg');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-12.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-13.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-14.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-15.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-16.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-17.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-18.jpg');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-19.png');"></div>
+              <div class="overlay-slide" style="background-image: url('assets/fauna-20.png');"></div>
+            </div>
+            <div class="overlay-panel overlay-left">
+              <h2>Bem-vindo de volta!</h2>
+              <p>Já possui conta no SAFER? Faça login para acompanhar suas ocorrências.</p>
+              <button type="button" class="btn btn-overlay" id="btn-go-login">Fazer login</button>
+            </div>
+            <div class="overlay-panel overlay-right">
+              <h2>Olá, visitante!</h2>
+              <p>Crie sua conta para registrar e acompanhar ocorrências na UFRPE.</p>
+              <button type="button" class="btn btn-overlay" id="btn-go-cadastro">Criar Conta</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <form id="form-login" class="stack-form">
-        <label>
-          E-mail institucional
-          <input type="email" id="login-email" required placeholder="nome@ufrpe.br" />
-        </label>
-        <label>
-          Senha
-          <input type="password" id="login-senha" required placeholder="••••••••••" />
-        </label>
-        <button type="submit" class="btn btn-primary">Entrar</button>
-      </form>
-
-      <div class="divider"></div>
-      <button type="button" id="btn-voltar-app" class="btn btn-ghost" style="width: 100%;">
+      <button type="button" id="btn-voltar-app" class="btn btn-ghost" style="margin-top: 16px;">
         ← Voltar para o home
       </button>
-
-      <form id="form-cadastro" class="stack-form hidden">
-        <label>
-          Nome completo
-          <input type="text" id="cad-nome" required maxlength="150" placeholder="Maria Silva" />
-        </label>
-        <label>
-          E-mail
-          <input type="email" id="cad-email" required maxlength="180" placeholder="maria@ufrpe.br" />
-        </label>
-        <label>
-          Vínculo com a UFRPE
-          <select id="cad-relacao" required>
-            <option value="DISCENTE">Discente</option>
-            <option value="DOCENTE">Docente</option>
-            <option value="TECNICO">Técnico</option>
-            <option value="TERCEIRIZADO">Terceirizado</option>
-            <option value="VISITANTE">Visitante</option>
-          </select>
-        </label>
-        <div class="grid-2">
-          <label>
-            Celular (opcional)
-            <input type="text" id="cad-celular" maxlength="20" placeholder="(81) 99999-9999" />
-          </label>
-          <label>
-            Telefone fixo (opcional)
-            <input type="text" id="cad-fixo" maxlength="20" placeholder="(81) 3320-0000" />
-          </label>
-        </div>
-        <label>
-          Senha (mín. 10 caracteres, maiúscula, minúscula, número e especial)
-          <input type="password" id="cad-senha" required placeholder="SenhaForte@123" />
-        </label>
-        <button type="submit" class="btn btn-primary">Cadastrar</button>
-      </form>
     </section>
   </main>
 
@@ -162,20 +265,36 @@
       <div class="topbar-brand">
         <span class="brand-badge">SAFER</span>
         <span class="topbar-subtitle">UFRPE</span>
+        <button type="button" id="btn-toggle-sidebar" class="btn-icon" title="Recolher barra lateral" aria-label="Recolher barra lateral">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+        </button>
       </div>
 
       <nav class="topbar-nav" aria-label="Navegação principal">
-        <button type="button" class="nav-btn active" id="nav-ocorrencias" data-view="ocorrencias">Ocorrências</button>
-        <button type="button" class="nav-btn" id="nav-minhas" data-view="minhas">Minhas Ocorrências</button>
-        <button type="button" class="nav-btn" id="nav-registrar" data-view="registrar">Registrar Ocorrência</button>
-        <button type="button" class="nav-btn" id="nav-protocolo" data-view="protocolo">Consultar Protocolo</button>
-        <button type="button" class="nav-btn" id="nav-perfil" data-view="perfil">Meu Perfil</button>
-        <button type="button" class="nav-btn hidden" id="nav-usuarios" data-view="usuarios">Gestão de Usuários</button>
+        <button type="button" class="nav-btn active" id="nav-ocorrencias" data-view="ocorrencias" title="Ocorrências">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+          <span>Ocorrências</span>
+        </button>
+        <button type="button" class="nav-btn" id="nav-registrar" data-view="registrar" title="Registrar Ocorrência">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          <span>Registrar Ocorrência</span>
+        </button>
+        <button type="button" class="nav-btn" id="nav-perfil" data-view="perfil" title="Meu Perfil">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          <span>Meu Perfil</span>
+        </button>
+        <button type="button" class="nav-btn hidden" id="nav-usuarios" data-view="usuarios" title="Gestão de Usuários">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Gestão de Usuários</span>
+        </button>
       </nav>
 
       <div class="topbar-user">
         <span id="user-badge" class="user-badge hidden"></span>
-        <button type="button" id="btn-logout" class="btn btn-ghost">Sair</button>
+        <button type="button" id="btn-logout" class="btn btn-ghost" title="Sair">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sair</span>
+        </button>
       </div>
     </header>
 
@@ -188,6 +307,10 @@
             <p>Acompanhe os chamados abertos e em andamento no campus.</p>
           </div>
           <div class="toolbar">
+            <div class="scope-tabs" role="tablist" aria-label="Escopo das ocorrências">
+              <button type="button" class="scope-btn active" id="btn-escopo-todas">Todas</button>
+              <button type="button" class="scope-btn" id="btn-escopo-minhas">Minhas Ocorrências</button>
+            </div>
             <select id="filtro-status" aria-label="Filtrar por status">
               <option value="TODAS">Todas</option>
               <option value="EM_ABERTO" selected>Em Aberto</option>
@@ -212,7 +335,8 @@
           </div>
         </div>
 
-        <form id="form-ocorrencia" class="panel stack-form">
+        <div class="home-layout">
+          <form id="form-ocorrencia" class="panel stack-form">
           <div id="visitante-campos" class="grid-2 hidden">
             <label>
               Seu nome (opcional)
@@ -259,25 +383,45 @@
             <button type="submit" class="btn btn-primary">Enviar Ocorrência</button>
           </div>
         </form>
-      </section>
 
-      <!-- VIEW: CONSULTAR PROTOCOLO (CDU06 PÚBLICO) -->
-      <section id="view-protocolo" class="view-section hidden">
-        <div class="section-header">
-          <div>
-            <h2>Consultar Protocolo</h2>
-            <p>Acompanhe o andamento de uma ocorrência informando o número de protocolo.</p>
+        <aside class="home-aside">
+          <div class="panel home-info-card">
+            <h3>Como funciona</h3>
+            <ol class="home-steps">
+              <li>
+                <span class="step-num">1</span>
+                <div>
+                  <strong>Registre a ocorrência</strong>
+                  <p>Marque o local no mapa do campus e descreva a situação do animal.</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <div>
+                  <strong>Guarde o protocolo</strong>
+                  <p>Ao enviar, você recebe um código único para acompanhar o chamado.</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <div>
+                  <strong>Acompanhe o atendimento</strong>
+                  <p>Veja o andamento diretamente na aba Ocorrências.</p>
+                </div>
+              </li>
+            </ol>
           </div>
+
+          <div class="panel home-info-card home-tips-card">
+            <h3>Orientações de segurança</h3>
+            <ul class="home-tips">
+              <li>Não tente conter ou capturar animais silvestres feridos.</li>
+              <li>Mantenha distância segura e evite aglomeração ao redor.</li>
+              <li>Se possível, informe um ponto de referência próximo ao local.</li>
+            </ul>
+          </div>
+        </aside>
         </div>
-
-        <form id="form-protocolo" class="panel stack-form">
-          <div class="input-row">
-            <input type="text" id="prot-codigo" required placeholder="Ex: OC-20261112-4659EA" />
-            <button type="submit" class="btn btn-primary">Consultar</button>
-          </div>
-        </form>
-
-        <div id="protocolo-resultado" class="cards-grid" style="margin-top: 16px;"></div>
       </section>
 
       <!-- VIEW: MEU PERFIL (CDU03) -->
