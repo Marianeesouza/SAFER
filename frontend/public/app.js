@@ -334,11 +334,13 @@ function abrirModalProtocoloCriado(protocolo) {
 el("home-form-ocorrencia").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
+    const imagens = await lerImagensComoBase64(el("home-oc-imagens"));
     const criada = await apiFetch(API.ocorrencias, {
       method: "POST",
       body: JSON.stringify({
         usuarioId: null,
         descricaoAnimal: el("home-oc-descricao").value,
+        imagens,
         comunicante: {
           nome: el("home-oc-vis-nome").value.trim() || "Visitante",
           email: el("home-oc-vis-email").value.trim() || "visitante@safer.ufrpe.br",
@@ -546,8 +548,9 @@ async function abrirDetalhesOcorrencia(id) {
               const iconSvg = isConcluido
                 ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
                 : `<span class="zz-dot-inner"></span>`;
+              const isCurrent = isLast && !isConcluido;
               return `
-            <div class="zz-item ${side} ${isLast ? "current" : ""} ${isConcluido ? "done" : ""}">
+            <div class="zz-item ${side} ${isCurrent ? "current" : ""} ${isConcluido ? "done" : ""}">
               <div class="zz-marker">${iconSvg}</div>
               <div class="zz-card-wrap">
                 <span class="zz-date-pill">${dataFmt}</span>
@@ -562,9 +565,16 @@ async function abrirDetalhesOcorrencia(id) {
         : "<p class='card-meta'>Sem registros de histórico.</p>";
 
     const temCoords = lat != null && lng != null;
+    const imagensHtml =
+      det.imagens && det.imagens.length
+        ? `<div class="img-preview-grid" style="margin: 8px 0;">${det.imagens
+            .map((src, i) => `<img src="${src}" class="img-thumb" alt="Imagem ${i + 1} da ocorrência" />`)
+            .join("")}</div>`
+        : "";
     body.innerHTML = `
       <div><span class="status-badge status-${det.status}">${det.status}</span> <strong>${det.protocolo || ""}</strong></div>
       <p><strong>Descrição:</strong> ${det.descricaoAnimal || "-"}</p>
+      ${imagensHtml}
       <p><strong>Endereço:</strong> ${det.localizacao?.endereco || "-"}</p>
       <p><strong>Coordenadas:</strong> ${temCoords ? coords : "Coordenadas não informadas"}</p>
       ${temCoords ? '<div id="modal-map" class="map-box" style="height: 220px;"></div>' : ""}
@@ -704,11 +714,13 @@ el("btn-escopo-minhas").addEventListener("click", () => carregarOcorrencias(true
 el("form-ocorrencia").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
+    const imagens = await lerImagensComoBase64(el("oc-imagens"));
     const criada = await apiFetch(API.ocorrencias, {
       method: "POST",
       body: JSON.stringify({
         usuarioId: state.usuario ? state.usuario.id : null,
         descricaoAnimal: el("oc-descricao").value,
+        imagens,
         comunicante: state.usuario
           ? {
               nome: state.usuario.nome,
@@ -1158,4 +1170,95 @@ if (formCadastroEl) {
     idx = (idx + 1) % slides.length;
     slides[idx].classList.add("active");
   }, 5000);
+})();
+
+// Helper para ler imagens selecionadas como Base64 Data URLs
+function lerImagensComoBase64(inputEl) {
+  if (!inputEl || !inputEl.files || !inputEl.files.length) return Promise.resolve([]);
+  return Promise.all(
+    Array.from(inputEl.files).map(
+      (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("Erro ao ler imagem."));
+          reader.readAsDataURL(file);
+        })
+    )
+  );
+}
+
+function bindPreviewImagens(inputId, previewId) {
+  const input = el(inputId);
+  const preview = el(previewId);
+  if (!input || !preview) return;
+  input.addEventListener("change", async () => {
+    const imgs = await lerImagensComoBase64(input);
+    preview.innerHTML = imgs
+      .map((src) => `<img src="${src}" class="img-thumb" alt="Pré-visualização" />`)
+      .join("");
+  });
+}
+
+bindPreviewImagens("home-oc-imagens", "home-oc-imagens-preview");
+bindPreviewImagens("oc-imagens", "oc-imagens-preview");
+
+// Drag & Drop nas dropzones de imagens
+document.querySelectorAll(".dropzone").forEach((zone) => {
+  const input = el(zone.dataset.dropzone);
+  if (!input) return;
+
+  ["dragenter", "dragover"].forEach((ev) => {
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.add("dragover");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((ev) => {
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.remove("dragover");
+    });
+  });
+
+  zone.addEventListener("drop", (e) => {
+    const files = e.dataTransfer?.files;
+    if (!files || !files.length) return;
+    const dt = new DataTransfer();
+    Array.from(files)
+      .filter((f) => f.type.startsWith("image/"))
+      .forEach((f) => dt.items.add(f));
+    input.files = dt.files;
+    input.dispatchEvent(new Event("change"));
+  });
+});
+
+// Lightbox para expandir imagens ao clicar em .img-thumb
+(function initModalImagem() {
+  const modalImg = el("modal-imagem");
+  const imgEl = el("modal-imagem-src");
+  const btnFechar = el("btn-fechar-imagem");
+  if (!modalImg || !imgEl) return;
+
+  const fechar = () => {
+    modalImg.classList.add("hidden");
+    imgEl.src = "";
+  };
+
+  document.addEventListener("click", (e) => {
+    const thumb = e.target.closest(".img-thumb");
+    if (thumb && thumb.src) {
+      imgEl.src = thumb.src;
+      modalImg.classList.remove("hidden");
+    }
+  });
+
+  btnFechar?.addEventListener("click", fechar);
+  modalImg.addEventListener("click", (e) => {
+    if (e.target === modalImg) fechar();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modalImg.classList.contains("hidden")) fechar();
+  });
 })();

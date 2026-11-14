@@ -78,6 +78,15 @@
               Descrição do animal e da situação (obrigatório)
               <textarea id="home-oc-descricao" rows="3" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
             </label>
+            <div class="field-group">
+              <span class="field-label">Imagens (opcional)</span>
+              <label class="dropzone" data-dropzone="home-oc-imagens">
+                <input type="file" id="home-oc-imagens" accept="image/*" multiple class="dropzone-input" />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Arraste e solte as imagens aqui ou <strong>clique para selecionar</strong></span>
+              </label>
+            </div>
+            <div id="home-oc-imagens-preview" class="img-preview-grid"></div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Enviar Ocorrência</button>
             </div>
@@ -378,6 +387,15 @@
             Descrição do animal e da situação (obrigatório)
             <textarea id="oc-descricao" rows="4" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
           </label>
+          <div class="field-group">
+            <span class="field-label">Imagens (opcional)</span>
+            <label class="dropzone" data-dropzone="oc-imagens">
+              <input type="file" id="oc-imagens" accept="image/*" multiple class="dropzone-input" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Arraste e solte as imagens aqui ou <strong>clique para selecionar</strong></span>
+            </label>
+          </div>
+          <div id="oc-imagens-preview" class="img-preview-grid"></div>
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Enviar Ocorrência</button>
@@ -517,6 +535,13 @@
         <button type="button" id="btn-fechar-modal" class="btn btn-ghost" aria-label="Fechar">✕</button>
       </div>
       <div id="modal-conteudo" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-imagem" class="modal hidden" role="dialog" aria-modal="true" aria-label="Visualizar imagem">
+    <div class="modal-imagem-content">
+      <button type="button" id="btn-fechar-imagem" class="btn-icon modal-imagem-close" aria-label="Fechar imagem">✕</button>
+      <img id="modal-imagem-src" src="" alt="Imagem ampliada" />
     </div>
   </div>
 
