@@ -553,3 +553,1306 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar select {
+  width: auto;
+  min-width: 190px;
+}
+
+.inline-protocol-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-protocol-form input {
+  width: 210px;
+}
+
+.scope-tabs {
+  display: inline-flex;
+  background: var(--bg-soft, #f1f5f9);
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.scope-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted, #475569);
+  cursor: pointer;
+}
+
+.scope-btn.active {
+  background: #ffffff;
+  color: var(--primary, #1d4ed8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.nav-btn,
+#btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-btn svg,
+#btn-logout svg {
+  flex-shrink: 0;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.card-actions .btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  text-align: center;
+  justify-content: center;
+}
+
+.topbar {
+  transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.btn-icon {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: var(--bg-soft, #f1f5f9);
+  color: var(--text, #0f172a);
+}
+
+#app-shell.sidebar-collapsed .topbar {
+  width: 72px;
+  padding: 20px 10px;
+  align-items: center;
+}
+
+#app-shell.sidebar-collapsed .topbar-brand {
+  width: 100%;
+  justify-content: center;
+  padding: 0;
+}
+
+#app-shell.sidebar-collapsed .brand-badge,
+#app-shell.sidebar-collapsed .topbar-subtitle,
+#app-shell.sidebar-collapsed .nav-btn span,
+#app-shell.sidebar-collapsed #btn-logout span,
+#app-shell.sidebar-collapsed #user-badge {
+  display: none;
+}
+
+#app-shell.sidebar-collapsed .btn-icon {
+  margin-left: 0;
+}
+
+#app-shell.sidebar-collapsed .nav-btn,
+#app-shell.sidebar-collapsed #btn-logout {
+  justify-content: center;
+  padding: 10px;
+  width: 44px;
+}
+
+/* Timeline / Fluxograma de Status */
+.timeline {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  position: relative;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 28px;
+  padding-bottom: 16px;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border, #cbd5e1);
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary, #1d4ed8);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px var(--border, #cbd5e1);
+}
+
+.timeline-item.current .timeline-dot {
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
+}
+
+.dot-EM_ABERTO { background: #d97706; }
+.dot-EM_ATENDIMENTO { background: #2563eb; }
+.dot-NECESSITA_ATENDIMENTO_MEDICO { background: #ea580c; }
+.dot-FINALIZADO_COM_SUCESSO { background: #16a34a; }
+.dot-FINALIZADO_COM_COMPLICACOES { background: #dc2626; }
+.dot-CANCELADO { background: #64748b; }
+
+.timeline-content {
+  background: var(--bg-soft, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.timeline-item.current .timeline-content {
+  border-color: var(--primary, #1d4ed8);
+  background: #eff6ff;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.timeline-date {
+  font-size: 0.78rem;
+  color: var(--muted, #64748b);
+}
+
+/* Fluxograma de Status */
+.flowchart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.flowchart-node {
+  width: 100%;
+  background: var(--bg-soft, #f8fafc);
+  border: 1.5px solid var(--border, #cbd5e1);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.flowchart-node.current {
+  border-color: var(--primary, #1d4ed8);
+  background: #eff6ff;
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.12);
+}
+
+.flowchart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.flowchart-date {
+  font-size: 0.78rem;
+  color: var(--muted, #64748b);
+}
+
+.flowchart-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary, #1d4ed8);
+  padding: 2px 0;
+}
+
+/* =========================================================
+   SAFER UFRPE — Visual Upgrade Layer
+   ========================================================= */
+:root {
+  --primary: #0f3d75;
+  --primary-hover: #0b2d57;
+  --accent: #0d9488;
+  --bg: #f3f6fb;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(13, 148, 136, 0.08), transparent 36%),
+    radial-gradient(circle at 88% 15%, rgba(15, 61, 117, 0.09), transparent 40%),
+    var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .brand-badge {
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Public Topbar */
+.public-topbar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.brand-badge {
+  background: linear-gradient(135deg, #0f3d75, #0d9488);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 61, 117, 0.22);
+}
+
+/* Dark Navy Sidebar */
+.topbar {
+  background: linear-gradient(180deg, #0b2545 0%, #0f325e 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.topbar .topbar-subtitle {
+  color: #94a3b8;
+}
+
+.topbar .btn-icon {
+  color: #cbd5e1;
+}
+
+.topbar .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.topbar .nav-btn {
+  color: #cbd5e1;
+  border-radius: 10px;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+}
+
+.topbar .nav-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+}
+
+.topbar .nav-btn.active {
+  background: linear-gradient(90deg, rgba(13, 148, 136, 0.28), rgba(13, 148, 136, 0.1));
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #2dd4bf;
+}
+
+.topbar #btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fca5a5;
+  border-color: rgba(252, 165, 165, 0.25);
+}
+
+.topbar #btn-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+}
+
+/* Cards & Panels */
+.panel,
+.card {
+  background: var(--surface);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px -10px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -12px rgba(15, 61, 117, 0.16);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0f3d75, #15539e);
+  border: none;
+  box-shadow: 0 6px 16px -4px rgba(15, 61, 117, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px -6px rgba(15, 61, 117, 0.42);
+}
+
+/* Modals */
+.modal-card {
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.28);
+}
+
+/* =========================================================
+   SAFER UFRPE — Polimento de Cards, Forms, Login, Tabelas e Perfil
+   ========================================================= */
+
+/* Inputs, Selects & Textareas */
+input,
+select,
+textarea {
+  border: 1.5px solid #dbe2ea;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent, #0d9488);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.16);
+}
+
+/* Cards de Ocorrências */
+.card {
+  position: relative;
+  overflow: hidden;
+  border-top: 3px solid var(--primary, #0f3d75);
+}
+
+.card-top {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.card-title {
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* Mapa */
+.map-box {
+  border-radius: 12px;
+  border: 1.5px solid #dbe2ea;
+  box-shadow: 0 6px 18px -8px rgba(15, 23, 42, 0.15);
+  overflow: hidden;
+}
+
+/* Tela de Login / Cadastro */
+.auth-card {
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 24px 48px -16px rgba(15, 61, 117, 0.18);
+  padding: 28px;
+}
+
+.auth-tabs {
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.auth-tab {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.auth-tab.active {
+  background: #ffffff;
+  color: var(--primary, #0f3d75);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+/* Tabela de Gestão de Usuários */
+.table-wrap,
+table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Section Headers */
+.section-header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.section-header p {
+  color: var(--muted, #64748b);
+}
+
+/* =========================================================
+   SAFER UFRPE — High-Impact Visual Polish
+   ========================================================= */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-section:not(.hidden) {
+  animation: fadeInUp 0.24s ease-out;
+}
+
+/* Tela de Login / Cadastro com fundo institucional marcante */
+#auth-screen:not(.hidden) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(45, 212, 191, 0.22), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.18), transparent 45%),
+    linear-gradient(135deg, #071930 0%, #0f3d75 58%, #0d6e6e 100%);
+}
+
+#auth-screen .auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.45);
+}
+
+#auth-screen .btn-ghost {
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.28);
+  margin-bottom: 16px;
+}
+
+#auth-screen .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Cards de Ocorrências com rodapé de ações destacado */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #0f3d75;
+}
+
+.card-actions {
+  margin: auto -18px -18px;
+  padding: 12px 18px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Painéis de Formulário (Registrar Ocorrência, Meu Perfil, Gestão) */
+#view-registrar .panel,
+#view-perfil .panel,
+#view-usuarios .panel {
+  border-top: 4px solid #0d9488;
+  padding: 24px;
+}
+
+/* Badges de Status com mais contraste */
+.status-EM_ABERTO { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.status-EM_ATENDIMENTO { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.status-NECESSITA_ATENDIMENTO_MEDICO { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+.status-FINALIZADO_COM_SUCESSO { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.status-FINALIZADO_COM_COMPLICACOES { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.status-CANCELADO { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+/* =========================================================
+   SAFER UFRPE — Micro-interações e Efeitos
+   ========================================================= */
+
+/* 1. Entrada em cascata nos cards */
+.cards-grid .card {
+  animation: fadeInUp 0.28s ease-out both;
+}
+.cards-grid .card:nth-child(2) { animation-delay: 0.04s; }
+.cards-grid .card:nth-child(3) { animation-delay: 0.08s; }
+.cards-grid .card:nth-child(4) { animation-delay: 0.12s; }
+.cards-grid .card:nth-child(5) { animation-delay: 0.16s; }
+.cards-grid .card:nth-child(6) { animation-delay: 0.20s; }
+
+/* 2. Modais com zoom + blur no fundo */
+.modal {
+  backdrop-filter: blur(4px);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal:not(.hidden) .modal-card {
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 3. Pulso discreto no status EM_ABERTO e no nó atual do fluxograma */
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.25); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+}
+
+.status-EM_ABERTO {
+  animation: softPulse 2.4s infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 2px 6px rgba(29, 78, 216, 0.12), 0 0 0 0 rgba(29, 78, 216, 0.22); }
+  50% { box-shadow: 0 2px 6px rgba(29, 78, 216, 0.12), 0 0 0 5px rgba(29, 78, 216, 0); }
+}
+
+.flowchart-node.current {
+  animation: nodePulse 2.6s infinite;
+}
+
+/* 4. Reflexo (shine) nos botões primários (removido) */
+
+/* 5. Micro-interações de clique e hover */
+.topbar .nav-btn:hover {
+  transform: translateX(3px);
+}
+
+.btn:active,
+.nav-btn:active,
+.scope-btn:active {
+  transform: scale(0.97);
+}
+
+.card-actions .btn {
+  flex: 1 0 auto;
+}
+
+.card-actions select {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+
+
+/* =========================================================
+   SAFER UFRPE — Zigzag Center-Spine Timeline (Histórico)
+   ========================================================= */
+.zz-timeline {
+  position: relative;
+  margin: 16px 0 4px;
+  padding: 8px 0;
+}
+
+.zz-timeline::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #0f3d75 0%, #0d9488 100%);
+  border-radius: 3px;
+}
+
+.zz-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.zz-item:last-child {
+  margin-bottom: 0;
+}
+
+.zz-item.right {
+  justify-content: flex-end;
+}
+
+.zz-item.left {
+  justify-content: flex-start;
+}
+
+.zz-marker {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f3d75, #0d9488);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.zz-item.current .zz-marker {
+  background: #ffffff;
+  border: 3px solid #0d9488;
+  box-shadow: 0 0 0 5px rgba(13, 148, 136, 0.22);
+}
+
+.zz-dot-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0d9488;
+}
+
+.zz-card-wrap {
+  width: calc(50% - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zz-item.left .zz-card-wrap {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.zz-item.right .zz-card-wrap {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.zz-date-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f3d75, #0d9488);
+  box-shadow: 0 3px 8px rgba(15, 61, 117, 0.2);
+}
+
+.zz-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 16px -6px rgba(15, 23, 42, 0.1);
+}
+
+.zz-item.current .zz-card {
+  border-color: #0d9488;
+  background: #f0fdfa;
+}
+
+.zz-card-title {
+  margin-bottom: 4px;
+}
+
+/* Toast centralizado no topo */
+.toast {
+  top: 20px;
+  bottom: auto;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+/* Animação letra por letra nos títulos */
+@keyframes charRise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.char-rise {
+  display: inline-block;
+  animation: charRise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Indicador elástico da barra lateral */
+.topbar-nav {
+  position: relative;
+}
+
+.topbar .nav-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar .nav-btn.active {
+  background: transparent;
+  box-shadow: none;
+}
+
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(13, 148, 136, 0.28), rgba(13, 148, 136, 0.1));
+  box-shadow: inset 3px 0 0 #2dd4bf;
+  pointer-events: none;
+  z-index: 0;
+  transition: top 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Pill deslizante entre Todas e Minhas Ocorrências */
+.scope-tabs {
+  position: relative;
+}
+
+.scope-btn {
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.scope-btn.active {
+  background: transparent;
+  box-shadow: none;
+}
+
+.scope-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 0;
+  transition: left 0.42s cubic-bezier(0.22, 1, 0.36, 1), width 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Conteúdo dos painéis acompanha a entrada suave */
+.view-section:not(.hidden) .panel > * {
+  animation: fadeInUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.view-section:not(.hidden) .panel > *:nth-child(2) { animation-delay: 0.04s; }
+.view-section:not(.hidden) .panel > *:nth-child(3) { animation-delay: 0.08s; }
+.view-section:not(.hidden) .panel > *:nth-child(4) { animation-delay: 0.12s; }
+.view-section:not(.hidden) .panel > *:nth-child(5) { animation-delay: 0.16s; }
+.view-section:not(.hidden) .panel > *:nth-child(6) { animation-delay: 0.20s; }
+
+/* =========================================================
+   SAFER UFRPE — Sliding Auth Card (Login / Criar Conta)
+   ========================================================= */
+#auth-screen .auth-card {
+  width: 96% !important;
+  max-width: 1100px !important;
+  padding: 20px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.auth-slider-card {
+  position: relative;
+  width: 100%;
+  min-height: 600px;
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow: 0 28px 60px -16px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.form-container {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.form-container h2 {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.sign-in-container {
+  left: 0;
+  z-index: 2;
+}
+
+.auth-slider-card.right-panel-active .sign-in-container {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sign-up-container {
+  left: 0;
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-slider-card.right-panel-active .sign-up-container {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.overlay-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -1px;
+  width: calc(50% + 2px);
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 100;
+  border-radius: 120px 0 0 120px;
+}
+
+.auth-slider-card.right-panel-active .overlay-container {
+  transform: translateX(-100%);
+  border-radius: 0 120px 120px 0;
+}
+
+.overlay {
+  position: relative;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(135deg, #0b2545 0%, #0f3d75 50%, #0d9488 100%);
+  color: #ffffff;
+  transform: translateX(0);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-slider-card.right-panel-active .overlay {
+  transform: translateX(50%);
+}
+
+.overlay-panel {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  padding: 0 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overlay-panel h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #ffffff;
+}
+
+.overlay-panel p {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.5;
+}
+
+.overlay-left {
+  transform: translateX(-20%);
+}
+
+.auth-slider-card.right-panel-active .overlay-left {
+  transform: translateX(0);
+}
+
+.overlay-right {
+  right: 0;
+  transform: translateX(0);
+}
+
+.auth-slider-card.right-panel-active .overlay-right {
+  transform: translateX(20%);
+}
+
+.btn-overlay {
+  background: transparent;
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  padding: 10px 28px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-overlay:hover {
+  background: #ffffff;
+  color: #0f3d75;
+}
+
+@media (max-width: 768px) {
+  .auth-slider-card {
+    min-height: 620px;
+  }
+  .overlay-container {
+    display: none;
+  }
+  .form-container {
+    width: 100%;
+  }
+  .auth-slider-card.right-panel-active .sign-up-container {
+    transform: translateX(0);
+  }
+}
+
+/* Tela de Login / Cadastro em TELA INTEIRA */
+#view-auth:not(.hidden) {
+  position: fixed;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: #ffffff !important;
+  overflow: hidden;
+  z-index: 50;
+}
+
+#view-auth .auth-card {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-auth .auth-header {
+  display: none;
+}
+
+#view-auth .auth-slider-card {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#view-auth .form-container {
+  padding: 48px 10% !important;
+}
+
+#view-auth #btn-voltar-app {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 200;
+  margin: 0 !important;
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f3d75;
+  border: 1px solid #cbd5e1;
+}
+
+/* Olhinho da senha e checklist de requisitos */
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.toggle-pass {
+  position: absolute;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-pass:hover {
+  color: var(--primary, #0f3d75);
+}
+
+.pass-rules {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.pass-rules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  transition: color 0.15s ease;
+}
+
+.pass-rules li.valid {
+  color: #16a34a;
+}
+
+.pass-rules .rule-icon {
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+
+/* Evita corte no topo do formulário Criar Conta quando há scroll */
+#view-auth .sign-up-container {
+  justify-content: flex-start;
+  padding-top: 32px !important;
+  padding-bottom: 32px !important;
+}
+
+/* Carrossel crossfade com overlay degradê no painel de Login/Cadastro */
+.overlay-carousel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 0;
+  pointer-events: none;
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-slider-card.right-panel-active .overlay-carousel {
+  left: 0;
+}
+
+.overlay-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.4s ease-in-out;
+}
+
+.overlay-slide.active {
+  opacity: 1;
+}
+
+.overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(11, 37, 69, 0.82) 0%, rgba(15, 61, 117, 0.78) 50%, rgba(13, 148, 136, 0.74) 100%);
+  pointer-events: none;
+}
+
+.overlay-panel {
+  z-index: 2;
+}
+
+/* =========================================================
+   SAFER UFRPE — Home 2 colunas (Formulário + Guia Lateral)
+   ========================================================= */
+.home-layout {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.home-layout .home-single-card {
+  max-width: none;
+  margin: 0;
+}
+
+.home-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 88px;
+}
+
+.home-info-card {
+  padding: 20px;
+  border-top: 4px solid #0d9488;
+}
+
+.home-info-card h3 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.home-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f3d75, #0d9488);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.home-steps strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.home-steps p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+  line-height: 1.4;
+}
+
+.home-tips-card {
+  border-top-color: #0f3d75;
+}
+
+.home-tips {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--muted, #475569);
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .home-layout {
+    grid-template-columns: 1fr;
+  }
+  .home-aside {
+    position: static;
+  }
+}
