@@ -15,9 +15,11 @@ public record ComunicanteDTO(
         @Size(max = 150, message = "O e-mail não pode exceder 150 caracteres")
         String email,
 
+        @NotBlank(message = "O telefone do comunicante é obrigatório")
         @Size(max = 30, message = "O telefone não pode exceder 30 caracteres")
         String telefone,
 
+        @NotBlank(message = "A relação com a UFRPE é obrigatória")
         @Size(max = 50, message = "A relação com a UFRPE não pode exceder 50 caracteres")
         String relacaoUfrpe
 ) {

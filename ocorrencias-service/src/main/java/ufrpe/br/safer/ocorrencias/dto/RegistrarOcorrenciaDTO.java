@@ -18,6 +18,10 @@ public record RegistrarOcorrenciaDTO(
         @Valid
         LocalizacaoDTO localizacao,
 
+        @NotBlank(message = "A espécie do animal é obrigatória")
+        @Size(max = 150, message = "A espécie não pode exceder 150 caracteres")
+        String especieAnimal,
+
         @NotBlank(message = "A descrição do animal e da situação é obrigatória")
         @Size(max = 2000, message = "A descrição não pode exceder 2000 caracteres")
         String descricaoAnimal,

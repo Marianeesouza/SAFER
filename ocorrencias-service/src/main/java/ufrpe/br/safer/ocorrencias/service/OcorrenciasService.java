@@ -83,6 +83,7 @@ public class OcorrenciasService {
                 .protocolo(gerarProtocoloUnico())
                 .usuarioId(dto.usuarioId())
                 .comunicante(comunicante)
+                .especieAnimal(dto.especieAnimal().trim())
                 .descricaoAnimal(dto.descricaoAnimal().trim())
                 .localizacao(localizacao)
                 .status(StatusOcorrencia.EM_ABERTO)
