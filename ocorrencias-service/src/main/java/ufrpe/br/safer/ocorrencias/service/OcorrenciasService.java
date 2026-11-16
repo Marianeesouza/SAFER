@@ -83,6 +83,7 @@ public class OcorrenciasService {
                 .protocolo(gerarProtocoloUnico())
                 .usuarioId(dto.usuarioId())
                 .comunicante(comunicante)
+                .especieAnimal(dto.especieAnimal().trim())
                 .descricaoAnimal(dto.descricaoAnimal().trim())
                 .localizacao(localizacao)
                 .status(StatusOcorrencia.EM_ABERTO)
@@ -140,10 +141,10 @@ public class OcorrenciasService {
 
     @Transactional
     public OcorrenciaResponseDTO atualizarStatus(Long id, AtualizarStatusDTO dto) {
-        Ocorrencia ocorrencia = buscarComBloqueio(id);
+        StatusOcorrencia novoStatus = StatusOcorrencia.deCodigo(dto.novoStatus());
 
+        Ocorrencia ocorrencia = buscarComBloqueio(id);
         StatusOcorrencia statusAtual = ocorrencia.getStatus();
-        StatusOcorrencia novoStatus = dto.novoStatus();
 
         if (!statusAtual.podeTransitarPara(novoStatus)) {
             throw new TransicaoStatusInvalidaException(

@@ -71,6 +71,7 @@ public class OcorrenciasController {
     @Operation(summary = "Atualizar status da ocorrência (CDU07)", description = "Realiza a transição de estado validando a máquina de estados e registra auditoria")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Status atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Código de status desconhecido"),
             @ApiResponse(responseCode = "404", description = "Ocorrência não encontrada"),
             @ApiResponse(responseCode = "422", description = "Transição de status inválida para o estado atual")
     })
@@ -141,8 +142,9 @@ public class OcorrenciasController {
     @GetMapping
     @Operation(summary = "Listar ocorrências com filtro opcional por status (CDU06)")
     public ResponseEntity<List<OcorrenciaResponseDTO>> listar(
-            @Parameter(description = "Filtro opcional por status da ocorrência") @RequestParam(required = false) StatusOcorrencia status
+            @Parameter(description = "Filtro opcional por código de status: " + StatusOcorrencia.DESCRICAO_CODIGOS, example = "1")
+            @RequestParam(required = false) Integer status
     ) {
-        return ResponseEntity.ok(ocorrenciasService.listar(status));
+        return ResponseEntity.ok(ocorrenciasService.listar(status == null ? null : StatusOcorrencia.deCodigo(status)));
     }
 }

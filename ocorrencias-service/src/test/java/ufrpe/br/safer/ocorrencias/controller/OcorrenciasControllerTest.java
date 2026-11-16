@@ -150,7 +150,7 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/status deve retornar 200 OK quando transicao valida")
     void deveAtualizarStatusComSucesso() throws Exception {
-        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO, 99L, "Obs");
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO.getCodigo(), 99L, "Obs");
         OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
                 1L,
                 PROTOCOLO_A,
@@ -176,7 +176,7 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/status deve retornar 422 Unprocessable se transicao invalida (RN03)")
     void deveRetornar422SeTransicaoInvalida() throws Exception {
-        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.FINALIZADO_COM_SUCESSO, 99L, "Obs");
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.FINALIZADO_COM_SUCESSO.getCodigo(), 99L, "Obs");
 
         when(ocorrenciasService.atualizarStatus(eq(1L), any()))
                 .thenThrow(new TransicaoStatusInvalidaException("Transição inválida de status."));
@@ -297,7 +297,7 @@ class OcorrenciasControllerTest {
     void deveListarComFiltroStatus() throws Exception {
         when(ocorrenciasService.listar(StatusOcorrencia.EM_ABERTO)).thenReturn(List.of());
 
-        mockMvc.perform(get("/ocorrencias").param("status", "EM_ABERTO"))
+        mockMvc.perform(get("/ocorrencias").param("status", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -335,8 +335,34 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("Filtro de status inexistente deve retornar 400 sem expor o nome das classes")
     void deveRetornar400QuandoStatusDoFiltroNaoExiste() throws Exception {
-        mockMvc.perform(get("/ocorrencias").param("status", "VOANDO"))
+        mockMvc.perform(get("/ocorrencias").param("status", "abc"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("ufrpe.br"))));
+    }
+
+    @Test
+    @DisplayName("PATCH /ocorrencias/{id}/status recebe o status como numero e a resposta devolve o nome")
+    void deveReceberStatusNumericoEResponderComNome() throws Exception {
+        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
+                1L, PROTOCOLO_A, 1L,
+                new ComunicanteDTO("Joao", "joao@ufrpe.br", null, null),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Animal ferido", StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO, 99L,
+                LocalDateTime.now(), LocalDateTime.now());
+        when(ocorrenciasService.atualizarStatus(eq(1L), any())).thenReturn(response);
+
+        mockMvc.perform(patch("/ocorrencias/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"novoStatus\": 3, \"analistaId\": 99}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NECESSITA_ATENDIMENTO_MEDICO"));
+    }
+
+    @Test
+    @DisplayName("Filtro com codigo de status desconhecido deve retornar 400 listando os valores aceitos")
+    void deveRetornar400QuandoCodigoDeStatusDoFiltroNaoExiste() throws Exception {
+        mockMvc.perform(get("/ocorrencias").param("status", "9"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Valores aceitos")));
     }
 }

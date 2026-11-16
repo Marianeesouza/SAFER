@@ -1,9 +1,8 @@
 package ufrpe.br.safer.ocorrencias.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,8 +34,8 @@ public class HistoricoOcorrencia {
     @JoinColumn(name = "ocorrencia_id", nullable = false)
     private Ocorrencia ocorrencia;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status_registrado", nullable = false, length = 40)
+    @Convert(converter = StatusOcorrenciaConverter.class)
+    @Column(name = "status_registrado", nullable = false)
     private StatusOcorrencia statusRegistrado;
 
     @Column(name = "usuario_id")

@@ -43,6 +43,9 @@ public class Ocorrencia {
     @Embedded
     private DadosComunicante comunicante;
 
+    @Column(name = "especie_animal", length = 150)
+    private String especieAnimal;
+
     @Column(name = "descricao_animal", nullable = false, columnDefinition = "TEXT")
     private String descricaoAnimal;
 

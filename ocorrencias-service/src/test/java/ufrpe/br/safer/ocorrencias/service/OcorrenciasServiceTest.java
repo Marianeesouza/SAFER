@@ -185,7 +185,7 @@ class OcorrenciasServiceTest {
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         AtualizarStatusDTO dto = new AtualizarStatusDTO(
-                StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
+                StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO.getCodigo(),
                 99L,
                 "Animal com fratura exposta, encaminhado ao Hospital Veterinário"
         );
@@ -205,7 +205,7 @@ class OcorrenciasServiceTest {
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
         AtualizarStatusDTO dto = new AtualizarStatusDTO(
-                StatusOcorrencia.FINALIZADO_COM_SUCESSO,
+                StatusOcorrencia.FINALIZADO_COM_SUCESSO.getCodigo(),
                 99L,
                 "Tentando finalizar sem antes atender"
         );
@@ -216,13 +216,22 @@ class OcorrenciasServiceTest {
     }
 
     @Test
+    @DisplayName("Deve rejeitar codigo de status desconhecido antes de consultar o banco")
+    void deveRejeitarCodigoDeStatusDesconhecido() {
+        assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(99, 5L, null)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Status inválido: 99");
+        verifyNoInteractions(ocorrenciaRepository, historicoOcorrenciaRepository, eventPublisher);
+    }
+
+    @Test
     @DisplayName("Deve barrar assumir ou cancelar pelo endpoint de status (sem analista responsavel nem justificativa)")
     void deveBarrarAssumirOuCancelarPeloEndpointDeStatus() {
         for (StatusOcorrencia destino : List.of(StatusOcorrencia.EM_ATENDIMENTO, StatusOcorrencia.CANCELADO)) {
             Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
             when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
 
-            assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(destino, 99L, null)))
+            assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(destino.getCodigo(), 99L, null)))
                     .isInstanceOf(TransicaoStatusInvalidaException.class)
                     .hasMessageContaining("vincular-analista");
             assertThat(o.getStatus()).isEqualTo(StatusOcorrencia.EM_ABERTO);
