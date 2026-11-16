@@ -47,16 +47,36 @@
           <form id="home-form-ocorrencia" class="stack-form" style="margin-top: 8px;">
             <div class="grid-2">
               <label>
-                Seu nome (opcional)
-                <input type="text" id="home-oc-vis-nome" placeholder="Visitante" />
+                Seu nome
+                <input type="text" id="home-oc-vis-nome" required maxlength="150" placeholder="Seu nome completo" />
               </label>
               <label>
-                Seu e-mail (opcional)
-                <input type="email" id="home-oc-vis-email" placeholder="visitante@exemplo.com" />
+                Seu e-mail
+                <input type="email" id="home-oc-vis-email" required maxlength="150" placeholder="seuemail@exemplo.com" />
+              </label>
+            </div>
+            <div class="grid-2">
+              <label>
+                Celular
+                <input type="tel" id="home-oc-vis-celular" required maxlength="20" placeholder="(81) 99999-9999" />
+              </label>
+              <label>
+                Telefone fixo / Ramal (opcional)
+                <input type="text" id="home-oc-vis-ramal" maxlength="30" placeholder="(81) 3320-6000 / Ramal 1234" />
               </label>
             </div>
             <label>
-              Logradouro / Local (obrigatório)
+              Vínculo com a UFRPE
+              <select id="home-oc-vis-relacao" required>
+                <option value="DISCENTE">Discente</option>
+                <option value="DOCENTE">Docente</option>
+                <option value="TECNICO">Técnico</option>
+                <option value="TERCEIRIZADO">Terceirizado</option>
+                <option value="VISITANTE">Visitante</option>
+              </select>
+            </label>
+            <label>
+              Logradouro / Local
               <input type="text" id="home-oc-logradouro" required placeholder="Selecione um ponto no mapa..." readonly />
             </label>
             <div class="campus-bar">
@@ -64,18 +84,14 @@
               <span id="home-geo-status" class="card-meta">Clique no mapa para definir o local.</span>
             </div>
             <div id="home-map" class="map-box" style="height: 240px;" aria-label="Mapa do campus UFRPE"></div>
-            <div class="grid-2">
-              <label>
-                Latitude (obrigatório)
-                <input type="number" step="any" id="home-oc-lat" required value="-8.0175" />
-              </label>
-              <label>
-                Longitude (obrigatório)
-                <input type="number" step="any" id="home-oc-lng" required value="-34.9492" />
-              </label>
-            </div>
+            <input type="hidden" id="home-oc-lat" value="-8.0175" />
+            <input type="hidden" id="home-oc-lng" value="-34.9492" />
             <label>
-              Descrição do animal e da situação (obrigatório)
+              Espécie do animal
+              <input type="text" id="home-oc-especie" required maxlength="150" placeholder="Ex: Cachorro, Gato, Jabuti, Sagui..." />
+            </label>
+            <label>
+              Descrição do animal e da situação
               <textarea id="home-oc-descricao" rows="3" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
             </label>
             <div class="field-group">
@@ -191,7 +207,7 @@
                 <input type="text" id="cad-celular" maxlength="20" placeholder="(81) 99999-9999" />
               </label>
               <label>
-                Telefone fixo (opcional)
+                Telefone fixo / Ramal (opcional)
                 <input type="text" id="cad-fixo" maxlength="20" placeholder="(81) 3320-0000" />
               </label>
             </div>
@@ -346,18 +362,40 @@
 
         <div class="home-layout">
           <form id="form-ocorrencia" class="panel stack-form">
-          <div id="visitante-campos" class="grid-2 hidden">
+          <div id="visitante-campos" class="stack-form">
+            <div class="grid-2">
+              <label>
+                Seu nome
+                <input type="text" id="oc-vis-nome" required maxlength="150" placeholder="Seu nome completo" />
+              </label>
+              <label>
+                Seu e-mail para contato
+                <input type="email" id="oc-vis-email" required maxlength="150" placeholder="seuemail@exemplo.com" />
+              </label>
+            </div>
+            <div class="grid-2">
+              <label>
+                Celular
+                <input type="tel" id="oc-vis-celular" required maxlength="20" placeholder="(81) 99999-9999" />
+              </label>
+              <label>
+                Telefone fixo / Ramal (opcional)
+                <input type="text" id="oc-vis-ramal" maxlength="30" placeholder="(81) 3320-6000 / Ramal 1234" />
+              </label>
+            </div>
             <label>
-              Seu nome (opcional)
-              <input type="text" id="oc-vis-nome" placeholder="Visitante" />
-            </label>
-            <label>
-              Seu e-mail para contato (opcional)
-              <input type="email" id="oc-vis-email" placeholder="visitante@exemplo.com" />
+              Vínculo com a UFRPE
+              <select id="oc-vis-relacao" required>
+                <option value="DISCENTE">Discente</option>
+                <option value="DOCENTE">Docente</option>
+                <option value="TECNICO">Técnico</option>
+                <option value="TERCEIRIZADO">Terceirizado</option>
+                <option value="VISITANTE">Visitante</option>
+              </select>
             </label>
           </div>
           <label>
-            Logradouro / Local (obrigatório)
+            Logradouro / Local
             <input type="text" id="oc-logradouro" required placeholder="Selecione um ponto no mapa..." readonly />
           </label>
 
@@ -372,19 +410,16 @@
           </div>
           <div id="map" class="map-box" aria-label="Mapa do campus UFRPE para seleção de coordenadas"></div>
 
-          <div class="grid-2">
-            <label>
-              Latitude (obrigatório)
-              <input type="number" step="any" id="oc-lat" required value="-8.0175" />
-            </label>
-            <label>
-              Longitude (obrigatório)
-              <input type="number" step="any" id="oc-lng" required value="-34.9492" />
-            </label>
-          </div>
+          <input type="hidden" id="oc-lat" value="-8.0175" />
+          <input type="hidden" id="oc-lng" value="-34.9492" />
 
           <label>
-            Descrição do animal e da situação (obrigatório)
+            Espécie do animal
+            <input type="text" id="oc-especie" required maxlength="150" placeholder="Ex: Cachorro, Gato, Jabuti, Sagui..." />
+          </label>
+
+          <label>
+            Descrição do animal e da situação
             <textarea id="oc-descricao" rows="4" required maxlength="2000" placeholder="Descreva o animal, estado de saúde e a situação..."></textarea>
           </label>
           <div class="field-group">
@@ -475,7 +510,7 @@
               <input type="text" id="perf-celular" maxlength="20" />
             </label>
             <label>
-              Telefone fixo
+              Telefone fixo / Ramal
               <input type="text" id="perf-fixo" maxlength="20" />
             </label>
           </div>

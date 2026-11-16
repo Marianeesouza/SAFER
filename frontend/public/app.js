@@ -77,7 +77,15 @@ function renderAppState() {
     return;
   }
 
-  el("visitante-campos").classList.toggle("hidden", isLogged);
+  if (isLogged && state.usuario) {
+    el("oc-vis-nome").value = state.usuario.nome || "";
+    el("oc-vis-email").value = state.usuario.email || "";
+    el("oc-vis-celular").value = state.usuario.celular || "";
+    el("oc-vis-ramal").value = state.usuario.ramal || "";
+    if (state.usuario.relacaoUfrpe) {
+      el("oc-vis-relacao").value = state.usuario.relacaoUfrpe;
+    }
+  }
 
   if (!isLogged) {
     document.querySelectorAll(".nav-btn").forEach((btn) => {
@@ -339,11 +347,14 @@ el("home-form-ocorrencia").addEventListener("submit", async (e) => {
       method: "POST",
       body: JSON.stringify({
         usuarioId: null,
+        especieAnimal: el("home-oc-especie").value.trim(),
         descricaoAnimal: el("home-oc-descricao").value,
         imagens,
         comunicante: {
-          nome: el("home-oc-vis-nome").value.trim() || "Visitante",
-          email: el("home-oc-vis-email").value.trim() || "visitante@safer.ufrpe.br",
+          nome: el("home-oc-vis-nome").value.trim(),
+          email: el("home-oc-vis-email").value.trim(),
+          telefone: el("home-oc-vis-celular").value.trim(),
+          relacaoUfrpe: el("home-oc-vis-relacao").value,
         },
         localizacao: {
           latitude: homeGeoIndisponivel ? null : parseFloat(el("home-oc-lat").value),
@@ -353,7 +364,19 @@ el("home-form-ocorrencia").addEventListener("submit", async (e) => {
       }),
     });
     abrirModalProtocoloCriado(criada.protocolo || `#${criada.id}`);
+    el("form-ocorrencia").reset();
+    el("oc-imagens").value = "";
+    el("oc-imagens-preview").innerHTML = "";
+    if (state.usuario) {
+      el("oc-vis-nome").value = state.usuario.nome || "";
+      el("oc-vis-email").value = state.usuario.email || "";
+      el("oc-vis-celular").value = state.usuario.celular || "";
+      el("oc-vis-ramal").value = state.usuario.ramal || "";
+      if (state.usuario.relacaoUfrpe) el("oc-vis-relacao").value = state.usuario.relacaoUfrpe;
+    }
     el("home-form-ocorrencia").reset();
+    el("home-oc-imagens").value = "";
+    el("home-oc-imagens-preview").innerHTML = "";
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -573,10 +596,10 @@ async function abrirDetalhesOcorrencia(id) {
         : "";
     body.innerHTML = `
       <div><span class="status-badge status-${det.status}">${det.status}</span> <strong>${det.protocolo || ""}</strong></div>
+      <p><strong>Espécie:</strong> ${det.especieAnimal || "-"}</p>
       <p><strong>Descrição:</strong> ${det.descricaoAnimal || "-"}</p>
       ${imagensHtml}
       <p><strong>Endereço:</strong> ${det.localizacao?.endereco || "-"}</p>
-      <p><strong>Coordenadas:</strong> ${temCoords ? coords : "Coordenadas não informadas"}</p>
       ${temCoords ? '<div id="modal-map" class="map-box" style="height: 220px;"></div>' : ""}
       <p><strong>Comunicante:</strong> ${det.comunicante?.nome || "-"} (${det.comunicante?.email || "-"})</p>
       <p><strong>Analista responsável:</strong> ${det.analistaResponsavelId ?? "Não atribuído"}</p>
@@ -719,17 +742,15 @@ el("form-ocorrencia").addEventListener("submit", async (e) => {
       method: "POST",
       body: JSON.stringify({
         usuarioId: state.usuario ? state.usuario.id : null,
+        especieAnimal: el("oc-especie").value.trim(),
         descricaoAnimal: el("oc-descricao").value,
         imagens,
-        comunicante: state.usuario
-          ? {
-              nome: state.usuario.nome,
-              email: state.usuario.email,
-            }
-          : {
-              nome: el("oc-vis-nome").value.trim() || "Visitante",
-              email: el("oc-vis-email").value.trim() || "visitante@safer.ufrpe.br",
-            },
+        comunicante: {
+          nome: el("oc-vis-nome").value.trim(),
+          email: el("oc-vis-email").value.trim(),
+          telefone: el("oc-vis-celular").value.trim(),
+          relacaoUfrpe: el("oc-vis-relacao").value,
+        },
         localizacao: {
           latitude: geoIndisponivel ? null : parseFloat(el("oc-lat").value),
           longitude: geoIndisponivel ? null : parseFloat(el("oc-lng").value),
@@ -738,6 +759,16 @@ el("form-ocorrencia").addEventListener("submit", async (e) => {
       }),
     });
     abrirModalProtocoloCriado(criada.protocolo || `#${criada.id}`);
+    el("form-ocorrencia").reset();
+    el("oc-imagens").value = "";
+    el("oc-imagens-preview").innerHTML = "";
+    if (state.usuario) {
+      el("oc-vis-nome").value = state.usuario.nome || "";
+      el("oc-vis-email").value = state.usuario.email || "";
+      el("oc-vis-celular").value = state.usuario.celular || "";
+      el("oc-vis-ramal").value = state.usuario.ramal || "";
+      if (state.usuario.relacaoUfrpe) el("oc-vis-relacao").value = state.usuario.relacaoUfrpe;
+    }
     el("form-ocorrencia").reset();
     if (state.usuario) {
       switchView("ocorrencias");
@@ -1195,8 +1226,23 @@ function bindPreviewImagens(inputId, previewId) {
   input.addEventListener("change", async () => {
     const imgs = await lerImagensComoBase64(input);
     preview.innerHTML = imgs
-      .map((src) => `<img src="${src}" class="img-thumb" alt="Pré-visualização" />`)
+      .map(
+        (src, idx) =>
+          `<div class="img-thumb-wrap"><img src="${src}" class="img-thumb" alt="Pré-visualização" /><button type="button" class="img-thumb-remove" data-idx="${idx}" aria-label="Remover imagem">✕</button></div>`
+      )
       .join("");
+  });
+
+  preview.addEventListener("click", (e) => {
+    const btn = e.target.closest(".img-thumb-remove");
+    if (!btn) return;
+    const removeIdx = Number(btn.dataset.idx);
+    const dt = new DataTransfer();
+    Array.from(input.files || []).forEach((f, i) => {
+      if (i !== removeIdx) dt.items.add(f);
+    });
+    input.files = dt.files;
+    input.dispatchEvent(new Event("change"));
   });
 }
 
