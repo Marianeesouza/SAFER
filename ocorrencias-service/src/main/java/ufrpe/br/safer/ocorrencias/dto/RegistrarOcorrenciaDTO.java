@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public record RegistrarOcorrenciaDTO(
         Long usuarioId,
 
@@ -16,7 +18,14 @@ public record RegistrarOcorrenciaDTO(
         @Valid
         LocalizacaoDTO localizacao,
 
+        @NotBlank(message = "A espécie do animal é obrigatória")
+        @Size(max = 150, message = "A espécie não pode exceder 150 caracteres")
+        String especieAnimal,
+
         @NotBlank(message = "A descrição do animal e da situação é obrigatória")
         @Size(max = 2000, message = "A descrição não pode exceder 2000 caracteres")
-        String descricaoAnimal
+        String descricaoAnimal,
+
+        @Size(max = 5, message = "Máximo de 5 imagens por ocorrência")
+        List<String> imagens
 ) {}
