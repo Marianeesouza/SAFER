@@ -15,6 +15,7 @@ import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
 import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
+import ufrpe.br.safer.ocorrencias.messaging.EmailNotificacaoPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
@@ -43,6 +44,7 @@ public class OcorrenciasService {
     private final HistoricoOcorrenciaRepository historicoOcorrenciaRepository;
     private final GeocodificacaoClient geocodificacaoClient;
     private final OcorrenciaEventPublisher eventPublisher;
+    private final EmailNotificacaoPublisher emailPublisher;
 
     @Transactional
     public OcorrenciaResponseDTO registrarOcorrencia(RegistrarOcorrenciaDTO dto) {
@@ -95,7 +97,7 @@ public class OcorrenciasService {
         Ocorrencia salva = ocorrenciaRepository.save(ocorrencia);
         registrarHistorico(salva, StatusOcorrencia.EM_ABERTO, dto.usuarioId(), "Ocorrência registrada no sistema.", agora);
 
-        eventPublisher.publicarOcorrenciaRegistrada(new OcorrenciaRegistradaEvent(
+        OcorrenciaRegistradaEvent eventoRegistro = new OcorrenciaRegistradaEvent(
                 salva.getId(),
                 salva.getProtocolo(),
                 salva.getComunicante().getNome(),
@@ -104,7 +106,9 @@ public class OcorrenciasService {
                 salva.getLocalizacao().getEndereco(),
                 salva.getStatus(),
                 salva.getCriadoEm()
-        ));
+        );
+        eventPublisher.publicarOcorrenciaRegistrada(eventoRegistro);
+        emailPublisher.notificarRegistro(eventoRegistro);
 
         return OcorrenciaResponseDTO.fromEntity(salva);
     }
@@ -125,7 +129,7 @@ public class OcorrenciasService {
         String observacao = "Atendimento assumido pelo analista ID " + analistaId + ".";
         registrarHistorico(ocorrencia, StatusOcorrencia.EM_ATENDIMENTO, analistaId, observacao, agora);
 
-        eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
+        StatusOcorrenciaAlteradoEvent eventoStatus = new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicante().getEmail(),
@@ -134,7 +138,9 @@ public class OcorrenciasService {
                 analistaId,
                 observacao,
                 agora
-        ));
+        );
+        eventPublisher.publicarStatusAlterado(eventoStatus);
+        emailPublisher.notificarStatusAlterado(eventoStatus);
 
         return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
@@ -167,7 +173,7 @@ public class OcorrenciasService {
                 : "Status alterado para " + novoStatus;
         registrarHistorico(ocorrencia, novoStatus, dto.analistaId(), observacao, agora);
 
-        eventPublisher.publicarStatusAlterado(new StatusOcorrenciaAlteradoEvent(
+        StatusOcorrenciaAlteradoEvent eventoStatus = new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicante().getEmail(),
@@ -176,7 +182,9 @@ public class OcorrenciasService {
                 dto.analistaId(),
                 observacao,
                 agora
-        ));
+        );
+        eventPublisher.publicarStatusAlterado(eventoStatus);
+        emailPublisher.notificarStatusAlterado(eventoStatus);
 
         return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
@@ -198,14 +206,16 @@ public class OcorrenciasService {
 
         registrarHistorico(ocorrencia, StatusOcorrencia.CANCELADO, dto.usuarioId(), "Cancelamento: " + justificativa, agora);
 
-        eventPublisher.publicarOcorrenciaCancelada(new OcorrenciaCanceladaEvent(
+        OcorrenciaCanceladaEvent eventoCancelamento = new OcorrenciaCanceladaEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicante().getEmail(),
                 dto.usuarioId(),
                 justificativa,
                 agora
-        ));
+        );
+        eventPublisher.publicarOcorrenciaCancelada(eventoCancelamento);
+        emailPublisher.notificarCancelamento(eventoCancelamento);
 
         return OcorrenciaResponseDTO.fromEntity(ocorrencia);
     }
