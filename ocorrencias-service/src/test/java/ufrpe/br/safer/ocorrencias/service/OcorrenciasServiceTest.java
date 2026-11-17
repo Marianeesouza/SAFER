@@ -17,6 +17,7 @@ import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
+import ufrpe.br.safer.ocorrencias.messaging.EmailNotificacaoPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
@@ -57,6 +58,9 @@ class OcorrenciasServiceTest {
     @Mock
     private OcorrenciaEventPublisher eventPublisher;
 
+    @Mock
+    private EmailNotificacaoPublisher emailPublisher;
+
     @InjectMocks
     private OcorrenciasService ocorrenciasService;
 
@@ -90,6 +94,7 @@ class OcorrenciasServiceTest {
 
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarOcorrenciaRegistrada(any(OcorrenciaRegistradaEvent.class));
+        verify(emailPublisher).notificarRegistro(any(OcorrenciaRegistradaEvent.class));
     }
 
     @Test
@@ -144,6 +149,7 @@ class OcorrenciasServiceTest {
 
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarOcorrenciaRegistrada(any(OcorrenciaRegistradaEvent.class));
+        verify(emailPublisher).notificarRegistro(any(OcorrenciaRegistradaEvent.class));
     }
 
     @Test
@@ -160,6 +166,7 @@ class OcorrenciasServiceTest {
 
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarStatusAlterado(any(StatusOcorrenciaAlteradoEvent.class));
+        verify(emailPublisher).notificarStatusAlterado(any(StatusOcorrenciaAlteradoEvent.class));
     }
 
     @Test
@@ -173,7 +180,7 @@ class OcorrenciasServiceTest {
         assertThatThrownBy(() -> ocorrenciasService.vincularAnalista(1L, 99L))
                 .isInstanceOf(OcorrenciaJaAssumidaException.class)
                 .hasMessageContaining("já foi assumida por outro analista");
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(eventPublisher, emailPublisher);
     }
 
     @Test
@@ -195,6 +202,7 @@ class OcorrenciasServiceTest {
         assertThat(response.status()).isEqualTo(StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO);
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarStatusAlterado(any(StatusOcorrenciaAlteradoEvent.class));
+        verify(emailPublisher).notificarStatusAlterado(any(StatusOcorrenciaAlteradoEvent.class));
     }
 
     @Test
@@ -221,7 +229,7 @@ class OcorrenciasServiceTest {
         assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(99, 5L, null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Status inválido: 99");
-        verifyNoInteractions(ocorrenciaRepository, historicoOcorrenciaRepository, eventPublisher);
+        verifyNoInteractions(ocorrenciaRepository, historicoOcorrenciaRepository, eventPublisher, emailPublisher);
     }
 
     @Test
@@ -236,7 +244,7 @@ class OcorrenciasServiceTest {
                     .hasMessageContaining("vincular-analista");
             assertThat(o.getStatus()).isEqualTo(StatusOcorrencia.EM_ABERTO);
         }
-        verifyNoInteractions(historicoOcorrenciaRepository, eventPublisher);
+        verifyNoInteractions(historicoOcorrenciaRepository, eventPublisher, emailPublisher);
     }
 
     @Test
@@ -252,6 +260,7 @@ class OcorrenciasServiceTest {
         assertThat(response.status()).isEqualTo(StatusOcorrencia.CANCELADO);
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarOcorrenciaCancelada(any(OcorrenciaCanceladaEvent.class));
+        verify(emailPublisher).notificarCancelamento(any(OcorrenciaCanceladaEvent.class));
     }
 
     @Test
