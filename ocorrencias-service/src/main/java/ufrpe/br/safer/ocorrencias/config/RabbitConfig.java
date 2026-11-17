@@ -23,6 +23,9 @@ public class RabbitConfig {
     public static final String QUEUE_CANCELADA = "safer.ocorrencia.cancelada";
     public static final String ROUTING_KEY_CANCELADA = "ocorrencia.cancelada";
 
+    // A fila é declarada pelo notificacoes-service, dono do consumo.
+    public static final String ROUTING_KEY_ENVIAR_EMAIL = "notificacao.email.enviar";
+
     @Bean
     public DirectExchange ocorrenciasExchange() {
         return new DirectExchange(EXCHANGE_NAME);
