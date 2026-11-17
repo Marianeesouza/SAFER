@@ -14,6 +14,15 @@ spring:
     port: 5672
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-retries: 2
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
   mail:
     # MailHog em desenvolvimento (SMTP 1025, interface web 8025).
     host: ${MAIL_HOST:localhost}
