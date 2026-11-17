@@ -31,6 +31,14 @@ class EnviarEmailCommandTest {
     }
 
     @Test
+    void camposMaioresQueAsColunasDoBancoSaoRejeitados() {
+        var comando = new EnviarEmailCommand("c".repeat(201), "ana@ufrpe.br", "a".repeat(256), "Corpo");
+
+        // chave e assunto
+        assertEquals(2, validator.validate(comando).size());
+    }
+
+    @Test
     void desserializaJsonPublicadoPorOutroServico() {
         var json = """
                 {"chaveIdempotencia":"ocorrencia-1-registro","destinatario":"ana@ufrpe.br",
