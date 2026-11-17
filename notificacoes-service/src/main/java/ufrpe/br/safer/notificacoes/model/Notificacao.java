@@ -46,7 +46,7 @@ public class Notificacao {
     /** Cria o registro já com o resultado da primeira tentativa */
     public static Notificacao primeiraTentativa(String chaveIdempotencia, String destinatario, String assunto,
                                                 boolean enviada) {
-        var notificacao = new Notificacao();
+        Notificacao notificacao = new Notificacao();
         notificacao.chaveIdempotencia = chaveIdempotencia;
         notificacao.destinatario = destinatario;
         notificacao.assunto = assunto;

@@ -24,9 +24,9 @@ class SmtpEmailSenderTest {
     void enviaMensagemComRemetenteDestinatarioAssuntoECorpo() {
         sender.enviar("ana@ufrpe.br", "Assunto", "Corpo");
 
-        var captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
-        var mensagem = captor.getValue();
+        SimpleMailMessage mensagem = captor.getValue();
         assertEquals("safer@ufrpe.br", mensagem.getFrom());
         assertArrayEquals(new String[] {"ana@ufrpe.br"}, mensagem.getTo());
         assertEquals("Assunto", mensagem.getSubject());
@@ -35,10 +35,10 @@ class SmtpEmailSenderTest {
 
     @Test
     void traduzFalhaDoProvedorParaEmailEnvioException() {
-        var causa = new MailSendException("smtp fora do ar");
+        MailSendException causa = new MailSendException("smtp fora do ar");
         doThrow(causa).when(mailSender).send(any(SimpleMailMessage.class));
 
-        var erro = assertThrows(EmailEnvioException.class, () -> sender.enviar("ana@ufrpe.br", "A", "C"));
+        EmailEnvioException erro = assertThrows(EmailEnvioException.class, () -> sender.enviar("ana@ufrpe.br", "A", "C"));
 
         assertSame(causa, erro.getCause());
     }

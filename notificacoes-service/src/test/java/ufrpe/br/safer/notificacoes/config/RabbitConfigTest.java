@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.Queue;
 
 class RabbitConfigTest {
 
@@ -11,7 +13,7 @@ class RabbitConfigTest {
 
     @Test
     void filaPrincipalEncaminhaRejeitadasParaDlq() {
-        var fila = config.enviarEmailQueue();
+        Queue fila = config.enviarEmailQueue();
 
         assertEquals(RabbitConfig.QUEUE_ENVIAR_EMAIL, fila.getName());
         assertTrue(fila.isDurable());
@@ -21,7 +23,7 @@ class RabbitConfigTest {
 
     @Test
     void dlqEhDuravel() {
-        var dlq = config.enviarEmailDlq();
+        Queue dlq = config.enviarEmailDlq();
 
         assertEquals(RabbitConfig.QUEUE_ENVIAR_EMAIL_DLQ, dlq.getName());
         assertTrue(dlq.isDurable());
@@ -29,7 +31,7 @@ class RabbitConfigTest {
 
     @Test
     void bindingLigaFilaAoExchangeDeOcorrenciasComARoutingKeyDoComando() {
-        var binding = config.bindingEnviarEmail(config.enviarEmailQueue(), config.ocorrenciasExchange());
+        Binding binding = config.bindingEnviarEmail(config.enviarEmailQueue(), config.ocorrenciasExchange());
 
         assertEquals(RabbitConfig.QUEUE_ENVIAR_EMAIL, binding.getDestination());
         assertEquals(RabbitConfig.EXCHANGE_NAME, binding.getExchange());

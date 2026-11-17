@@ -19,7 +19,7 @@ public class SmtpEmailSender implements EmailSender {
 
     @Override
     public void enviar(String destinatario, String assunto, String corpo) {
-        var mensagem = new SimpleMailMessage();
+        SimpleMailMessage mensagem = new SimpleMailMessage();
         mensagem.setFrom(remetente);
         mensagem.setTo(destinatario);
         mensagem.setSubject(assunto);

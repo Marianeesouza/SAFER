@@ -17,12 +17,12 @@ class RetryConfigTest {
 
     @Test
     void retryLimitadoComBackoffENaoReenfileiraRejeitadas() throws IOException {
-        var ambiente = new StandardEnvironment();
+        StandardEnvironment ambiente = new StandardEnvironment();
         new YamlPropertySourceLoader().load("application", new ClassPathResource("application.yml"))
                 .forEach(ambiente.getPropertySources()::addLast);
 
-        var rabbit = Binder.get(ambiente).bind("spring.rabbitmq", RabbitProperties.class).get();
-        var listener = rabbit.getListener().getSimple();
+        RabbitProperties rabbit = Binder.get(ambiente).bind("spring.rabbitmq", RabbitProperties.class).get();
+        RabbitProperties.SimpleContainer listener = rabbit.getListener().getSimple();
 
         assertFalse(listener.getDefaultRequeueRejected());
         assertTrue(listener.getRetry().isEnabled());

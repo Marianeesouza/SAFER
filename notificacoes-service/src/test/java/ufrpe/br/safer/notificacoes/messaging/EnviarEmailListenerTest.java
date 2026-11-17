@@ -19,7 +19,7 @@ class EnviarEmailListenerTest {
 
     @Test
     void delegaComandoValidoAoServico() {
-        var comando = new EnviarEmailCommand("chave-1", "ana@ufrpe.br", "Assunto", "Corpo");
+        EnviarEmailCommand comando = new EnviarEmailCommand("chave-1", "ana@ufrpe.br", "Assunto", "Corpo");
 
         listener.receber(comando);
 
@@ -28,7 +28,7 @@ class EnviarEmailListenerTest {
 
     @Test
     void rejeitaComandoInvalidoSemReenfileirarENaoChamaServico() {
-        var comando = new EnviarEmailCommand("chave-1", "nao-e-email", "Assunto", "Corpo");
+        EnviarEmailCommand comando = new EnviarEmailCommand("chave-1", "nao-e-email", "Assunto", "Corpo");
 
         assertThrows(AmqpRejectAndDontRequeueException.class, () -> listener.receber(comando));
 

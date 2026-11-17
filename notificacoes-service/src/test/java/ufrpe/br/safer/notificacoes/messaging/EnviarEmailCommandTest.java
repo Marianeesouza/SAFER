@@ -17,14 +17,14 @@ class EnviarEmailCommandTest {
 
     @Test
     void comandoValidoNaoTemViolacoes() {
-        var comando = new EnviarEmailCommand("chave-1", "ana@ufrpe.br", "Assunto", "Corpo");
+        EnviarEmailCommand comando = new EnviarEmailCommand("chave-1", "ana@ufrpe.br", "Assunto", "Corpo");
 
         assertTrue(validator.validate(comando).isEmpty());
     }
 
     @Test
     void camposVaziosEEmailInvalidoSaoRejeitados() {
-        var comando = new EnviarEmailCommand(" ", "nao-e-email", "", null);
+        EnviarEmailCommand comando = new EnviarEmailCommand(" ", "nao-e-email", "", null);
 
         // chave, destinatario, assunto e corpo
         assertEquals(4, validator.validate(comando).size());
@@ -32,7 +32,7 @@ class EnviarEmailCommandTest {
 
     @Test
     void camposMaioresQueAsColunasDoBancoSaoRejeitados() {
-        var comando = new EnviarEmailCommand("c".repeat(201), "ana@ufrpe.br", "a".repeat(256), "Corpo");
+        EnviarEmailCommand comando = new EnviarEmailCommand("c".repeat(201), "ana@ufrpe.br", "a".repeat(256), "Corpo");
 
         // chave e assunto
         assertEquals(2, validator.validate(comando).size());
@@ -40,16 +40,16 @@ class EnviarEmailCommandTest {
 
     @Test
     void desserializaJsonPublicadoPorOutroServico() {
-        var json = """
+        String json = """
                 {"chaveIdempotencia":"ocorrencia-1-registro","destinatario":"ana@ufrpe.br",
                  "assunto":"Ocorrência registrada","corpo":"Protocolo 123","extra":"ignorado"}
                 """;
-        var props = new MessageProperties();
+        MessageProperties props = new MessageProperties();
         props.setContentType(MessageProperties.CONTENT_TYPE_JSON);
         // o tipo vem do parâmetro do listener
         props.setInferredArgumentType(EnviarEmailCommand.class);
 
-        var convertido = new JacksonJsonMessageConverter()
+        Object convertido = new JacksonJsonMessageConverter()
                 .fromMessage(new Message(json.getBytes(StandardCharsets.UTF_8), props));
 
         assertEquals(new EnviarEmailCommand("ocorrencia-1-registro", "ana@ufrpe.br",

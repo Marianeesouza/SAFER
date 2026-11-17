@@ -36,7 +36,7 @@ class NotificacaoServiceTest {
         service.enviar(comando);
 
         verify(emailSender).enviar("ana@ufrpe.br", "Assunto", "Corpo");
-        var salva = capturarSalva();
+        Notificacao salva = capturarSalva();
         assertEquals(StatusNotificacao.ENVIADA, salva.getStatus());
         assertEquals(1, salva.getTentativas());
         assertEquals("chave-1", salva.getChaveIdempotencia());
@@ -55,34 +55,34 @@ class NotificacaoServiceTest {
 
     @Test
     void registraFalhaERelancaParaReentrega() {
-        var causa = new EmailEnvioException("smtp fora do ar", null);
+        EmailEnvioException causa = new EmailEnvioException("smtp fora do ar", null);
         when(repository.findByChaveIdempotencia("chave-1")).thenReturn(Optional.empty());
         doThrow(causa).when(emailSender).enviar(any(), any(), any());
 
-        var erro = assertThrows(EmailEnvioException.class, () -> service.enviar(comando));
+        EmailEnvioException erro = assertThrows(EmailEnvioException.class, () -> service.enviar(comando));
 
         assertSame(causa, erro);
-        var salva = capturarSalva();
+        Notificacao salva = capturarSalva();
         assertEquals(StatusNotificacao.FALHA, salva.getStatus());
         assertEquals(1, salva.getTentativas());
     }
 
     @Test
     void reentregaAposFalhaReaproveitaRegistroEMarcaEnviada() {
-        var comFalha = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", false);
+        Notificacao comFalha = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", false);
         when(repository.findByChaveIdempotencia("chave-1")).thenReturn(Optional.of(comFalha));
 
         service.enviar(comando);
 
         verify(emailSender).enviar("ana@ufrpe.br", "Assunto", "Corpo");
-        var salva = capturarSalva();
+        Notificacao salva = capturarSalva();
         assertSame(comFalha, salva);
         assertEquals(StatusNotificacao.ENVIADA, salva.getStatus());
         assertEquals(2, salva.getTentativas());
     }
 
     private Notificacao capturarSalva() {
-        var captor = ArgumentCaptor.forClass(Notificacao.class);
+        ArgumentCaptor<Notificacao> captor = ArgumentCaptor.forClass(Notificacao.class);
         verify(repository).save(captor.capture());
         return captor.getValue();
     }

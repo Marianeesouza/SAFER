@@ -10,7 +10,7 @@ class NotificacaoTest {
 
     @Test
     void primeiraTentativaBemSucedidaFicaEnviada() {
-        var notificacao = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", true);
+        Notificacao notificacao = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", true);
 
         assertEquals(StatusNotificacao.ENVIADA, notificacao.getStatus());
         assertEquals(1, notificacao.getTentativas());
@@ -20,7 +20,7 @@ class NotificacaoTest {
 
     @Test
     void falhaSeguidaDeSucessoContaTentativasEMudaStatus() {
-        var notificacao = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", false);
+        Notificacao notificacao = Notificacao.primeiraTentativa("chave-1", "ana@ufrpe.br", "Assunto", false);
 
         assertEquals(StatusNotificacao.FALHA, notificacao.getStatus());
         assertFalse(notificacao.foiEnviada());

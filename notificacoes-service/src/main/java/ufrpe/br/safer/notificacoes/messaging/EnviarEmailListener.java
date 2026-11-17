@@ -2,6 +2,7 @@ package ufrpe.br.safer.notificacoes.messaging;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -22,9 +23,9 @@ public class EnviarEmailListener {
 
     @RabbitListener(queues = RabbitConfig.QUEUE_ENVIAR_EMAIL)
     public void receber(EnviarEmailCommand comando) {
-        var violacoes = validator.validate(comando);
+        Set<ConstraintViolation<EnviarEmailCommand>> violacoes = validator.validate(comando);
         if (!violacoes.isEmpty()) {
-            var detalhes = violacoes.stream()
+            String detalhes = violacoes.stream()
                     .map(ConstraintViolation::getPropertyPath)
                     .map(Object::toString)
                     .sorted()

@@ -1,5 +1,6 @@
 package ufrpe.br.safer.notificacoes.service;
 
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class NotificacaoService {
     }
 
     public void enviar(EnviarEmailCommand comando) {
-        var existente = repository.findByChaveIdempotencia(comando.chaveIdempotencia());
+        Optional<Notificacao> existente = repository.findByChaveIdempotencia(comando.chaveIdempotencia());
         if (existente.isPresent() && existente.get().foiEnviada()) {
             log.info("E-mail {} já enviado, ignorando mensagem repetida", comando.chaveIdempotencia());
             return;
@@ -38,7 +39,7 @@ public class NotificacaoService {
         boolean enviada = falha == null;
 
         if (existente.isPresent()) {
-            var notificacao = existente.get();
+            Notificacao notificacao = existente.get();
             notificacao.registrarTentativa(enviada);
             repository.save(notificacao);
         } else {
