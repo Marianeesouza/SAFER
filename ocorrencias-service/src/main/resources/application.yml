@@ -19,7 +19,7 @@ server:
   port: 8082
 
 jwt:
-  secret: ${JWT_SECRET:super-secret-key-safer-ufrpe-development-environment-2024}
+  secret: ${JWT_SECRET}
 
 safer:
   services:
