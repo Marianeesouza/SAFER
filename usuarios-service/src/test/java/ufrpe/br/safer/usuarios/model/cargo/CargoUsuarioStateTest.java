@@ -47,6 +47,12 @@ class CargoUsuarioStateTest {
     }
 
     @Test
+    @DisplayName("Usuário sem cargo definido é tratado como comum e não recebe aviso")
+    void usuarioSemCargoNaoRecebeAviso() {
+        assertFalse(Usuario.builder().build().notificarNovaOcorrencia());
+    }
+
+    @Test
     @DisplayName("CargoAnalista: regras de permissão e transição")
     void testCargoAnalista() {
         assertTrue(usuarioAnalista.podeAssumirOcorrencia());

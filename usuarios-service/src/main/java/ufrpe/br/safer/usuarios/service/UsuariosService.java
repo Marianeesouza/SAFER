@@ -25,7 +25,6 @@ import ufrpe.br.safer.usuarios.model.Login;
 import ufrpe.br.safer.usuarios.model.Usuario;
 import ufrpe.br.safer.usuarios.repository.UsuarioRepository;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -134,11 +133,9 @@ public class UsuariosService {
 
     @Transactional(readOnly = true)
     public List<DestinatarioNotificacaoDTO> listarDestinatariosDeNovasOcorrencias() {
-        List<Cargo> cargosNotificados = Arrays.stream(Cargo.values())
-                .filter(Cargo::notificarNovaOcorrencia)
-                .toList();
-        return usuarioRepository.findByCargoIn(cargosNotificados)
+        return usuarioRepository.findAll()
                 .stream()
+                .filter(Usuario::notificarNovaOcorrencia)
                 .map(DestinatarioNotificacaoDTO::fromEntity)
                 .toList();
     }
