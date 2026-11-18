@@ -4,9 +4,10 @@ Interface em HTML, CSS e JavaScript simples para testar e demonstrar visualmente
 **geocodificação** (com mapa Leaflet) e de **ocorrências** (CDU05, CDU06, CDU07 e CDU08). O formulário
 em 3 etapas, o centro do mapa e as cores vêm do protótipo anterior (`Bits-Busters/SAFER`).
 
-A página não conhece o endereço de nenhum serviço: ela chama caminhos relativos (`/api/geocoding/...` e
-`/api/ocorrencias/...`) e um Nginx (serviço `frontend` do `compose.yaml`, configurado em `nginx.conf`)
-repassa as chamadas ao `geocodificacao-service` e ao `ocorrencias-service`.
+A página não conhece o endereço de nenhum serviço: ela chama caminhos relativos (`/api/geocoding/...`,
+`/api/ocorrencias/...`, `/api/auth/...` e `/api/usuarios/...`) e um Nginx (serviço `frontend` do `compose.yaml`,
+configurado em `nginx.conf`) repassa tudo que começa com `/api/` ao `api-gateway`. O gateway remove o prefixo
+`/api` e resolve o serviço de destino pelo Eureka.
 
 | Aba / Ação na tela | Chamada |
 |---|---|
@@ -26,9 +27,9 @@ repassa as chamadas ao `geocodificacao-service` e ao `ocorrencias-service`.
 ## Como rodar
 
 ```bash
-docker compose up --build frontend
+docker compose up --build
 ```
 
-Isso sobe o banco, o `geocodificacao-service` e o Nginx. Abra `http://localhost:5500`.
+Isso sobe a infraestrutura, os serviços, o gateway e o Nginx. Abra `http://localhost:5500`.
 
 Estrutura: `public/` (a página, servida pelo Nginx) e `nginx.conf`.
