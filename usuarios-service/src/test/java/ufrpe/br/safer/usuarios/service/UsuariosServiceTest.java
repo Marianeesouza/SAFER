@@ -332,8 +332,11 @@ class UsuariosServiceTest {
                 .id(2L).nome("Admin").cargo(Cargo.ADMINISTRADOR)
                 .login(Login.builder().email("admin@ufrpe.br").senhaHash("hash").build())
                 .build();
-        when(usuarioRepository.findByCargoIn(List.of(Cargo.ANALISTA, Cargo.ADMINISTRADOR)))
-                .thenReturn(List.of(analista, admin));
+        Usuario comum = Usuario.builder()
+                .id(3L).nome("Maria Comum").cargo(Cargo.COMUM)
+                .login(Login.builder().email("maria@ufrpe.br").senhaHash("hash").build())
+                .build();
+        when(usuarioRepository.findAll()).thenReturn(List.of(comum, analista, admin));
 
         List<DestinatarioNotificacaoDTO> destinatarios = usuariosService.listarDestinatariosDeNovasOcorrencias();
 

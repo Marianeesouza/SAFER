@@ -23,6 +23,7 @@ import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.exception.AcessoNegadoException;
 import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
+import ufrpe.br.safer.ocorrencias.exception.ServicoIndisponivelException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 import ufrpe.br.safer.ocorrencias.messaging.EmailNotificacaoPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
@@ -48,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -256,6 +259,216 @@ class OcorrenciasServiceTest {
         assertThatThrownBy(() -> ocorrenciasService.listarPorUsuario(20L))
                 .isInstanceOf(AcessoNegadoException.class)
                 .hasMessageContaining("Você só pode consultar suas próprias ocorrências");
+    }
+
+    // ---------- registro: regras de localização, espécie e imagens ----------
+
+    private RegistrarOcorrenciaDTO dtoComLocalizacao(LocalizacaoDTO localizacao) {
+        return new RegistrarOcorrenciaDTO(
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", null, null),
+                localizacao,
+                "Gato",
+                "Gato ferido",
+                List.of()
+        );
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar coordenadas parciais (apenas latitude ou apenas longitude)")
+    void deveRejeitarCoordenadasParciais() {
+        RegistrarOcorrenciaDTO apenasLat = dtoComLocalizacao(new LocalizacaoDTO(-8.0163, null, "Campus"));
+        RegistrarOcorrenciaDTO apenasLng = dtoComLocalizacao(new LocalizacaoDTO(null, -34.9501, "Campus"));
+
+        assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(apenasLat))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("juntas");
+        assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(apenasLng))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("juntas");
+
+        verifyNoInteractions(geocodificacaoClient, ocorrenciaRepository);
+    }
+
+    @Test
+    @DisplayName("Deve registrar em modo de contingencia (sem coordenadas) sem consultar a geocodificacao")
+    void deveRegistrarOcorrenciaModoContingenciaSemCoordenadas() {
+        RegistrarOcorrenciaDTO dto = dtoComLocalizacao(new LocalizacaoDTO(null, null, "Departamento de Zootecnia"));
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OcorrenciaResponseDTO response = ocorrenciasService.registrarOcorrencia(dto);
+
+        assertThat(response.localizacao().latitude()).isNull();
+        assertThat(response.localizacao().endereco()).isEqualTo("Departamento de Zootecnia");
+        verifyNoInteractions(geocodificacaoClient);
+        verify(eventPublisher).publicarOcorrenciaRegistrada(any(OcorrenciaRegistradaEvent.class));
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar ocorrencia com coordenadas fora do campus e nao gravar nada")
+    void deveRejeitarOcorrenciaForaDoCampus() {
+        RegistrarOcorrenciaDTO dto = dtoComLocalizacao(new LocalizacaoDTO(-8.05, -34.90, "Fora da UFRPE"));
+        when(geocodificacaoClient.validarPontoNoCampus(-8.05, -34.90)).thenReturn(false);
+
+        assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(dto))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("fora do perímetro");
+
+        verify(ocorrenciaRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher, emailPublisher);
+    }
+
+    @Test
+    @DisplayName("Deve guardar a especie (sem espacos nas pontas) e as imagens informadas")
+    void deveGuardarEspecieEImagens() {
+        List<String> imagens = List.of("data:image/png;base64,AAAA", "data:image/png;base64,BBBB");
+        RegistrarOcorrenciaDTO dto = new RegistrarOcorrenciaDTO(
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", null, null),
+                new LocalizacaoDTO(null, null, "Campus"),
+                "  Gato  ",
+                "Gato na pista",
+                imagens
+        );
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OcorrenciaResponseDTO response = ocorrenciasService.registrarOcorrencia(dto);
+
+        assertThat(response.especieAnimal()).isEqualTo("Gato");
+        assertThat(response.imagens()).containsExactlyElementsOf(imagens);
+    }
+
+    // ---------- status e cancelamento: regras de transição ----------
+
+    @Test
+    @DisplayName("Deve rejeitar transicao invalida de status e nao consultar o State")
+    void deveRejeitarTransicaoInvalida() {
+        mockAutenticado(99L, "ANALISTA");
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.FINALIZADO_COM_SUCESSO, 5L);
+        o.setAnalistaResponsavelId(99L);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.EM_ATENDIMENTO.getCodigo(), null);
+
+        assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, dto))
+                .isInstanceOf(TransicaoStatusInvalidaException.class)
+                .hasMessageContaining("Transição inválida");
+        verifyNoInteractions(usuariosClient, eventPublisher, emailPublisher);
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar codigo de status desconhecido antes de tocar no banco")
+    void deveRejeitarCodigoDeStatusDesconhecido() {
+        mockAutenticado(99L, "ANALISTA");
+
+        assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, new AtualizarStatusDTO(99, null)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Status inválido");
+
+        verifyNoInteractions(ocorrenciaRepository, historicoOcorrenciaRepository, usuariosClient, eventPublisher);
+    }
+
+    @Test
+    @DisplayName("Deve barrar assumir pelo endpoint de status (deve usar vincular-analista)")
+    void deveBarrarAssumirPeloEndpointDeStatus() {
+        mockAutenticado(99L, "ANALISTA");
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.EM_ATENDIMENTO.getCodigo(), null);
+
+        assertThatThrownBy(() -> ocorrenciasService.atualizarStatus(1L, dto))
+                .isInstanceOf(TransicaoStatusInvalidaException.class)
+                .hasMessageContaining("vincular-analista");
+        verifyNoInteractions(usuariosClient, eventPublisher);
+    }
+
+    @Test
+    @DisplayName("Deve barrar cancelamento se a ocorrencia ja esta em atendimento")
+    void deveBarrarCancelamentoSeJaEmAtendimento() {
+        mockAutenticado(5L, "COMUM");
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ATENDIMENTO, 5L);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+
+        assertThatThrownBy(() -> ocorrenciasService.cancelarOcorrencia(1L, new CancelarOcorrenciaDTO("Desisti")))
+                .isInstanceOf(TransicaoStatusInvalidaException.class)
+                .hasMessageContaining("já está em atendimento");
+        verifyNoInteractions(usuariosClient, eventPublisher);
+    }
+
+    // ---------- autorização delegada ao State (fail-closed) ----------
+
+    @Test
+    @DisplayName("Se o State negar a permissao, nao assume nem grava historico nem avisa ninguem")
+    void naoAssumeSeOStateNegarAPermissao() {
+        mockAutenticado(99L, "COMUM");
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+        doThrow(new AcessoNegadoException("O cargo do usuário não permite assumir ocorrências."))
+                .when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ASSUMIR), eq(5L), eq(null), eq("dummy-token"));
+
+        assertThatThrownBy(() -> ocorrenciasService.vincularAnalista(1L))
+                .isInstanceOf(AcessoNegadoException.class);
+
+        assertThat(o.getStatus()).isEqualTo(StatusOcorrencia.EM_ABERTO);
+        assertThat(o.getAnalistaResponsavelId()).isNull();
+        verifyNoInteractions(historicoOcorrenciaRepository, eventPublisher, emailPublisher);
+    }
+
+    @Test
+    @DisplayName("Se o usuarios-service estiver fora do ar, a acao e abortada (fail-closed)")
+    void abortaSeOUsuariosServiceEstiverForaDoAr() {
+        mockAutenticado(5L, "COMUM");
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+        when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
+        doThrow(new ServicoIndisponivelException("indisponível"))
+                .when(usuariosClient).validarPermissaoOuFalhar(eq(5L), eq(TipoAcaoOcorrencia.CANCELAR), eq(5L), eq(null), eq("dummy-token"));
+
+        assertThatThrownBy(() -> ocorrenciasService.cancelarOcorrencia(1L, new CancelarOcorrenciaDTO("Desisti")))
+                .isInstanceOf(ServicoIndisponivelException.class);
+
+        assertThat(o.getStatus()).isEqualTo(StatusOcorrencia.EM_ABERTO);
+        verifyNoInteractions(historicoOcorrenciaRepository, eventPublisher, emailPublisher);
+    }
+
+    // ---------- consultas ----------
+
+    @Test
+    @DisplayName("Consulta por protocolo e publica e traz o historico")
+    void deveBuscarDetalhesPorProtocolo() {
+        Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
+        when(ocorrenciaRepository.findByProtocolo(PROTOCOLO_1)).thenReturn(Optional.of(o));
+        when(historicoOcorrenciaRepository.findByOcorrenciaIdOrderByDataHoraAsc(1L)).thenReturn(List.of());
+
+        Optional<OcorrenciaDetalhadaDTO> detalhes = ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_1);
+
+        assertThat(detalhes).isPresent();
+        assertThat(detalhes.get().protocolo()).isEqualTo(PROTOCOLO_1);
+        assertThat(ocorrenciasService.buscarDetalhesPorProtocolo("OC-INEXISTENTE")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve listar somente as ocorrencias em aberto")
+    void deveListarEmAberto() {
+        when(ocorrenciaRepository.findByStatusOrderByCriadoEmDesc(StatusOcorrencia.EM_ABERTO)).thenReturn(List.of(
+                criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L),
+                criarOcorrenciaMock(2L, PROTOCOLO_2, StatusOcorrencia.EM_ABERTO, 6L)));
+
+        List<OcorrenciaResponseDTO> lista = ocorrenciasService.listarEmAberto();
+
+        assertThat(lista).hasSize(2);
+        assertThat(lista).allMatch(r -> r.status() == StatusOcorrencia.EM_ABERTO);
+    }
+
+    @Test
+    @DisplayName("Usuario lista as proprias ocorrencias e o administrador lista as de qualquer um")
+    void deveListarPorUsuario() {
+        when(ocorrenciaRepository.findByUsuarioIdOrderByCriadoEmDesc(5L)).thenReturn(List.of(
+                criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L)));
+
+        mockAutenticado(5L, "COMUM");
+        assertThat(ocorrenciasService.listarPorUsuario(5L)).hasSize(1);
+
+        mockAutenticado(1L, "ADMINISTRADOR");
+        assertThat(ocorrenciasService.listarPorUsuario(5L)).hasSize(1);
     }
 
     private Ocorrencia criarOcorrenciaMock(Long id, String protocolo, StatusOcorrencia status, Long usuarioId) {

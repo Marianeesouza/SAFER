@@ -287,4 +287,54 @@ class OcorrenciasControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
+
+    @Test
+    @DisplayName("POST /ocorrencias deve retornar 400 quando a especie do animal esta em branco")
+    void deveRejeitarRegistroSemEspecie() throws Exception {
+        RegistrarOcorrenciaDTO semEspecie = new RegistrarOcorrenciaDTO(
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
+                " ",
+                "Animal ferido",
+                List.of()
+        );
+
+        mockMvc.perform(post("/ocorrencias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(semEspecie)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /ocorrencias deve retornar 400 quando ha mais de 5 imagens")
+    void deveRejeitarMaisDeCincoImagens() throws Exception {
+        RegistrarOcorrenciaDTO comSeisImagens = new RegistrarOcorrenciaDTO(
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
+                "Sagui",
+                "Animal ferido",
+                List.of("a", "b", "c", "d", "e", "f")
+        );
+
+        mockMvc.perform(post("/ocorrencias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(comSeisImagens)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /ocorrencias?status=abc deve retornar 400 sem vazar nome de classe")
+    void deveRetornar400QuandoStatusDoFiltroNaoENumero() throws Exception {
+        mockMvc.perform(get("/ocorrencias").param("status", "abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("ufrpe.br"))));
+    }
+
+    @Test
+    @DisplayName("GET /ocorrencias?status=9 deve retornar 400 listando os codigos aceitos")
+    void deveRetornar400QuandoCodigoDeStatusDoFiltroNaoExiste() throws Exception {
+        mockMvc.perform(get("/ocorrencias").param("status", "9"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Valores aceitos")));
+    }
 }
