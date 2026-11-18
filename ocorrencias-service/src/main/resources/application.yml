@@ -23,7 +23,6 @@ jwt:
 
 safer:
   services:
-    geocodificacao-url: ${GEOCODING_URL:http://localhost:8083}
     usuarios-url: ${USUARIOS_SERVICE_URL:http://usuarios-service}
 
 eureka:
