@@ -1,40 +1,147 @@
 # SAFER — Sistema de Apoio à Fauna em Emergências da Rural
 
-Microsserviços Spring Boot (Java 21, Gradle multi-módulo). Cada módulo é uma aplicação independente
-com banco, porta e imagem próprios; **nenhum módulo depende de outro** — a comunicação é só por
-HTTP (descoberta via Eureka) ou RabbitMQ. Arquitetura completa: *Documento de Arquitetura de Serviços*.
+Sistema para registrar e acompanhar ocorrências com animais em situação de risco no campus da UFRPE. Qualquer
+pessoa registra uma ocorrência (mapa do campus, espécie, descrição e fotos) e acompanha o andamento pelo
+protocolo. Analistas e administradores triam e atualizam as ocorrências, e os envolvidos são avisados por e-mail.
 
-| Módulo | Porta | Papel | Banco |
-|---|---|---|---|
-| `discovery-server` | 8761 | Eureka (Service Discovery) | — |
-| `api-gateway` | 8080 | Entrada única, (futuramente) valida JWT, roteia (`/api/usuarios`, `/api/auth`, `/api/ocorrencias`) | — |
-| `usuarios-service` | 8081 | Cadastro, login (emitirá JWT), perfil, cargos | `usuarios_db` (5433) |
-| `ocorrencias-service` | 8082 | Ocorrências e histórico; publica eventos no RabbitMQ | `ocorrencias_db` (5434) |
-| `geocodificacao-service` | 8083 | Endereço ⇄ coordenadas (Nominatim) com cache | `geocodificacao_db` (5436) |
-| `notificacoes-service` | 8084 | Consome eventos e envia e-mail (SMTP) | `notificacoes_db` (5435) |
+Microsserviços Spring Boot (Java 21, Gradle multi-módulo) com Eureka, gateway, RabbitMQ e um frontend estático
+em Nginx. Cada serviço tem banco e imagem próprios e **nenhum módulo depende do código de outro**: a comunicação
+é só por HTTP (via Eureka) ou RabbitMQ.
 
-Dentro de cada serviço: `controller` → `service` → `repository` (+ `model`, `dto`, `config`);
-integrações externas ficam atrás de `adapter` (geocodificação, e-mail) ou `client` (outros serviços).
+## Arquitetura
 
-`docs/modelagem-astah/` guarda os exports do Astah (referência, não compilam).
-
-## Rodando
-
-```bash
-./gradlew build                     # compila e roda os testes de todos os módulos
-docker compose up --build           # sobe infraestrutura + serviços
+```
+Navegador ─► Nginx :5500 ─► api-gateway :8080 ─┬─► usuarios-service :8081
+                                               ├─► ocorrencias-service :8082 ──RabbitMQ──► notificacoes-service :8084 ─► SMTP
+                                               └─► geocodificacao-service :8083
+Todos se registram no discovery-server (Eureka) :8761. O ocorrencias consulta o usuarios (permissões, destinatários
+dos avisos) e a geocodificação (ponto dentro do campus) por HTTP, pelo Eureka.
 ```
 
-Só a infraestrutura, para rodar os serviços pela IDE (`bootRun` por módulo):
+Só o Nginx (5500), o gateway (8080), o Eureka (8761), o RabbitMQ (5672/15672), o MailHog (1025/8025) e os bancos
+(5433 a 5436, para uso pela IDE) publicam porta no host. Os serviços de negócio só se alcançam pelo gateway.
+
+## Como rodar
+
+Pré-requisitos: **Docker** com Compose v2 (no Windows/macOS, o Docker Desktop aberto), **Git** e internet.
+Java 21 só é necessário para rodar testes ou serviços fora do Docker.
+
+**1. Clonar**
+
+```bash
+git clone https://github.com/Marianeesouza/SAFER.git
+cd SAFER
+```
+
+**2. Criar o `.env`.** Nenhuma senha ou chave está no código: o compose **não sobe sem o `.env`**.
+
+```bash
+cp .env.example .env
+```
+
+(No PowerShell: `copy .env.example .env`.) Preencha todos os valores:
+
+| Variável | Para que serve |
+|---|---|
+| `DB_PASSWORD` | Senha dos bancos Postgres (usuário `safer`) |
+| `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | Acesso ao RabbitMQ e ao painel |
+| `JWT_SECRET` | Chave dos tokens de login, **mínimo 32 caracteres** (ex.: `openssl rand -base64 48`) |
+| `ADMIN_EMAIL`, `ADMIN_SENHA` | Primeiro administrador, criado ao subir |
+
+O `.env` está no `.gitignore`: nunca o commite.
+
+**3. Subir**
+
+```bash
+docker compose up --build
+```
+
+A primeira vez demora cerca de 3 minutos (cada serviço compila no Docker; depende da internet). O cache do Gradle
+fica guardado, então refazer o build de um serviço depois de mudar código leva poucos segundos. Se uma imagem
+falhar por queda de rede, rode o comando de novo. Os serviços levam cerca de um minuto para se registrar no
+Eureka; nesse intervalo o gateway pode responder 500.
+
+**4. Acessar**
+
+| O quê | Endereço |
+|---|---|
+| Aplicação | http://localhost:5500 |
+| Eureka | http://localhost:8761 |
+| E-mails enviados (MailHog) | http://localhost:8025 |
+| RabbitMQ | http://localhost:15672 (usuário e senha do `.env`) |
+
+**5. Parar**
+
+```bash
+docker compose down        # mantém os dados
+docker compose down -v     # apaga também os volumes (dados e senhas dos bancos)
+```
+
+## Primeiro uso
+
+1. Entre em http://localhost:5500 com o `ADMIN_EMAIL` e a `ADMIN_SENHA`.
+2. Em **Gestão de Usuários**, o administrador promove usuários. Todo cadastro nasce `COMUM`; só o administrador
+   cria `ANALISTA`.
+3. Registre uma ocorrência na página inicial (não precisa de login) e guarde o **protocolo**.
+4. Veja os e-mails no MailHog: o comunicante recebe a confirmação, e analistas e administradores recebem o aviso.
+
+Cadastro de usuário: senha com no mínimo 10 caracteres, com maiúscula, minúscula, número e um caractere especial
+(`@#$%&*!?-_`); celular obrigatório.
+
+## Regras principais
+
+- **Cargos** (padrão State no `usuarios-service`): `COMUM` registra e cancela as próprias ocorrências;
+  `ANALISTA` assume ocorrências e atualiza o status das que assumiu; `ADMINISTRADOR` faz tudo e gerencia usuários.
+  O ocorrencias pergunta ao usuarios se a ação é permitida e **nega se ele estiver indisponível**.
+- **Status** (código numérico): 1 `EM_ABERTO` → 2 `EM_ATENDIMENTO` → 3 `NECESSITA_ATENDIMENTO_MEDICO` →
+  4 `FINALIZADO_COM_SUCESSO` ou 5 `FINALIZADO_COM_COMPLICACOES`; 6 `CANCELADO` (só enquanto está em aberto).
+- **Registro:** espécie e descrição obrigatórias, até 5 imagens e coordenadas dentro do campus (ou só o endereço).
+- **E-mails:** o ocorrencias monta o e-mail e publica no RabbitMQ; o notificacoes o envia sem duplicar
+  (idempotente), com 3 tentativas e fila de mensagens mortas.
+
+## API
+
+Entra-se por `http://localhost:8080/api/...` (gateway) ou `http://localhost:5500/api/...` (Nginx), com prefixos
+`/api/auth` e `/api/usuarios`, `/api/ocorrencias` e `/api/geocoding`. Rotas protegidas exigem
+`Authorization: Bearer <token>` (o `tokenSessao` do login, válido por 24 h):
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"SEU_ADMIN_EMAIL","senha":"SUA_ADMIN_SENHA"}'
+```
+
+Para ver todas as rotas, ligue o Swagger (veja abaixo).
+
+## Desenvolvimento
+
+Testes (não precisam do Docker nem do `.env`):
+
+```bash
+./gradlew test
+```
+
+Para rodar os serviços pela IDE (`bootRun` por módulo), suba só a infraestrutura e o Eureka:
 
 ```bash
 docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db rabbitmq mailhog
+./gradlew :discovery-server:bootRun
 ```
 
-Painéis: Eureka `localhost:8761`, RabbitMQ `localhost:15672` (usuário e senha do `.env`), MailHog `localhost:8025`.
+Exporte no ambiente de cada serviço as variáveis do `.env` que ele usa (`DB_PASSWORD`, `JWT_SECRET`,
+`ADMIN_EMAIL`, `ADMIN_SENHA`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`). Os padrões de `localhost` já apontam para o
+compose.
 
-## Estado
+**Swagger** vem desligado. Rodando o serviço pela IDE com `SWAGGER_ENABLED=true`, ele fica em
+`http://localhost:<porta>/swagger-ui/index.html`.
 
-Só a estrutura: módulos, dependências, configuração, `compose.yaml` e pacotes por camada
-(cada `package-info.java` descreve o que entra ali). Nenhuma regra de negócio implementada ainda.
-Segurança/JWT ainda não foi adicionada (as dependências entram na parte de autenticação).
+Estrutura: um módulo por serviço (`usuarios-service`, `ocorrencias-service`, `geocodificacao-service`,
+`notificacoes-service`, `api-gateway`, `discovery-server`), `frontend/` (HTML/CSS/JS + Nginx), `compose.yaml` e
+`docs/modelagem-astah/` (modelagem original).
+
+## Segurança
+
+- `JWT_SECRET` é o mesmo no usuarios (que emite o token) e no ocorrencias (que o valida). O gateway só roteia.
+- A rota `/internal/...` do usuarios não exige token: ela só é segura porque o gateway não a roteia e o serviço
+  não publica porta.
+
+Mais detalhes: [`frontend/README.md`](frontend/README.md) e [`geocodificacao-service/README.md`](geocodificacao-service/README.md).

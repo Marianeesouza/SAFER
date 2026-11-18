@@ -2,10 +2,11 @@
 
 Isola a comunicação com o provedor externo de mapas (Nominatim): converte endereço em coordenadas e
 coordenadas em endereço, com cache próprio no banco. Também informa as configurações do mapa e se um
-ponto está dentro do campus. É chamado pelo Serviço de Ocorrências; não há rota no gateway.
+ponto está dentro do campus. É chamado pelo Serviço de Ocorrências e, pelo gateway (`/api/geocoding/**`), pelo mapa do frontend.
 
 - Porta: `8083` · Eureka: `geocodificacao-service` · Banco: `geocodificacao_db` (porta local `5436`)
-- Swagger: `http://localhost:8083/swagger-ui.html`
+- Swagger: desligado por padrão; com `SWAGGER_ENABLED=true`, em `http://localhost:8083/swagger-ui/index.html`
+- Rede: não publica porta no host no `compose.yaml`; é alcançado pelo gateway (`/api/geocoding/**`) e pelo Eureka
 
 ## Endpoints
 
