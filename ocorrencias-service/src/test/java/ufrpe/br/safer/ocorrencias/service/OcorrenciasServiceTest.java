@@ -97,6 +97,7 @@ class OcorrenciasServiceTest {
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarOcorrenciaRegistrada(any(OcorrenciaRegistradaEvent.class));
         verify(emailPublisher).notificarRegistro(any(OcorrenciaRegistradaEvent.class));
+        verify(emailPublisher).notificarAnalistas(any(OcorrenciaRegistradaEvent.class));
     }
 
     @Test
@@ -178,6 +179,7 @@ class OcorrenciasServiceTest {
         verify(historicoOcorrenciaRepository).save(any(HistoricoOcorrencia.class));
         verify(eventPublisher).publicarOcorrenciaRegistrada(any(OcorrenciaRegistradaEvent.class));
         verify(emailPublisher).notificarRegistro(any(OcorrenciaRegistradaEvent.class));
+        verify(emailPublisher).notificarAnalistas(any(OcorrenciaRegistradaEvent.class));
     }
 
     @Test

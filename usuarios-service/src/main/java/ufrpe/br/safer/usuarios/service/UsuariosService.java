@@ -8,6 +8,7 @@ import ufrpe.br.safer.usuarios.config.JwtService;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
 import ufrpe.br.safer.usuarios.dto.AtualizarPerfilDTO;
 import ufrpe.br.safer.usuarios.dto.CadastrarUsuarioDTO;
+import ufrpe.br.safer.usuarios.dto.DestinatarioNotificacaoDTO;
 import ufrpe.br.safer.usuarios.dto.LoginDTO;
 import ufrpe.br.safer.usuarios.dto.TokenResponseDTO;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
@@ -21,6 +22,7 @@ import ufrpe.br.safer.usuarios.model.Login;
 import ufrpe.br.safer.usuarios.model.Usuario;
 import ufrpe.br.safer.usuarios.repository.UsuarioRepository;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -130,6 +132,17 @@ public class UsuariosService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id));
         return UsuarioResponseDTO.fromEntity(usuario);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DestinatarioNotificacaoDTO> listarDestinatariosDeNovasOcorrencias() {
+        List<Cargo> cargosNotificados = Arrays.stream(Cargo.values())
+                .filter(Cargo::notificarNovaOcorrencia)
+                .toList();
+        return usuarioRepository.findByCargoIn(cargosNotificados)
+                .stream()
+                .map(DestinatarioNotificacaoDTO::fromEntity)
+                .toList();
     }
 
     @Transactional(readOnly = true)

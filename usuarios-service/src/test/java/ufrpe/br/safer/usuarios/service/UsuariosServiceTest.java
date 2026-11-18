@@ -10,6 +10,7 @@ import ufrpe.br.safer.usuarios.config.JwtService;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
 import ufrpe.br.safer.usuarios.dto.AtualizarPerfilDTO;
 import ufrpe.br.safer.usuarios.dto.CadastrarUsuarioDTO;
+import ufrpe.br.safer.usuarios.dto.DestinatarioNotificacaoDTO;
 import ufrpe.br.safer.usuarios.dto.LoginDTO;
 import ufrpe.br.safer.usuarios.dto.TokenResponseDTO;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
@@ -23,6 +24,7 @@ import ufrpe.br.safer.usuarios.model.RelacaoUfrpe;
 import ufrpe.br.safer.usuarios.model.Usuario;
 import ufrpe.br.safer.usuarios.repository.UsuarioRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -242,5 +244,25 @@ class UsuariosServiceTest {
         assertEquals("Maria Souza", response.nome());
         assertEquals("maria.nova@ufrpe.br", response.email());
         assertEquals("81988887777", response.celular());
+    }
+
+    @Test
+    void deveListarAnalistasEAdministradoresComoDestinatariosDeNovasOcorrencias() {
+        Usuario analista = Usuario.builder()
+                .id(1L).nome("Ana Analista").cargo(Cargo.ANALISTA)
+                .login(Login.builder().email("ana@ufrpe.br").senhaHash("hash").build())
+                .build();
+        Usuario admin = Usuario.builder()
+                .id(2L).nome("Admin").cargo(Cargo.ADMINISTRADOR)
+                .login(Login.builder().email("admin@ufrpe.br").senhaHash("hash").build())
+                .build();
+        when(usuarioRepository.findByCargoIn(List.of(Cargo.ANALISTA, Cargo.ADMINISTRADOR)))
+                .thenReturn(List.of(analista, admin));
+
+        List<DestinatarioNotificacaoDTO> destinatarios = usuariosService.listarDestinatariosDeNovasOcorrencias();
+
+        assertEquals(List.of(
+                new DestinatarioNotificacaoDTO(1L, "Ana Analista", "ana@ufrpe.br"),
+                new DestinatarioNotificacaoDTO(2L, "Admin", "admin@ufrpe.br")), destinatarios);
     }
 }

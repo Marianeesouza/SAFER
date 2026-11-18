@@ -1,5 +1,6 @@
 package ufrpe.br.safer.ocorrencias.messaging;
 
+import ufrpe.br.safer.ocorrencias.dto.DestinatarioDTO;
 import ufrpe.br.safer.ocorrencias.messaging.command.EnviarEmailCommand;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
@@ -29,6 +30,26 @@ final class EmailOcorrenciaBuilder {
                 "ocorrencia-" + evento.ocorrenciaId() + "-registrada",
                 evento.comunicanteEmail(),
                 "SAFER - Ocorrência " + evento.protocolo() + " registrada",
+                corpo + ASSINATURA);
+    }
+
+    static EnviarEmailCommand novaOcorrenciaParaAnalista(
+            OcorrenciaRegistradaEvent evento, DestinatarioDTO analista, String urlSistema) {
+        String corpo = """
+                Olá, %s.
+
+                Uma nova ocorrência aguarda atendimento.
+
+                Protocolo: %s
+                Animal: %s
+                Local: %s
+
+                Acesse o sistema para assumir o atendimento: %s""".formatted(
+                analista.nome(), evento.protocolo(), evento.descricaoAnimal(), evento.endereco(), urlSistema);
+        return new EnviarEmailCommand(
+                "ocorrencia-" + evento.ocorrenciaId() + "-analista-" + analista.id(),
+                analista.email(),
+                "SAFER - Nova ocorrência " + evento.protocolo() + " aguardando atendimento",
                 corpo + ASSINATURA);
     }
 
