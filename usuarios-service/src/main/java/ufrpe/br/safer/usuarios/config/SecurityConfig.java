@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
                         // Rotas internas entre serviços (mensageria/notificações)
                         .requestMatchers("/internal/**").permitAll()
+                        // Destino do sendError: sem liberar, um 403 vira 401 (o /error exigiria autenticação)
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/actuator/**",
                                 "/v3/api-docs/**",
