@@ -3,3 +3,9 @@
 .git
 .idea
 docs
+# Não entram no build dos serviços: a interface é montada pelo compose, e o .env guarda segredos.
+frontend
+**/*.md
+.env
+.env.*
+.github
