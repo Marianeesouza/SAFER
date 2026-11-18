@@ -388,7 +388,7 @@ el("form-home-protocolo").addEventListener("submit", async (e) => {
   if (!codigo) return;
   try {
     const oc = await apiFetch(`${API.ocorrencias}/protocolo/${encodeURIComponent(codigo)}`);
-    await abrirDetalhesOcorrencia(oc.id);
+    renderModalDetalhes(oc);
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -545,6 +545,75 @@ async function carregarOcorrencias(apenasMinhas = apenasMinhasAtivo) {
   }
 }
 
+function renderModalDetalhes(det) {
+  const modal = el("modal-detalhes");
+  const body = el("modal-conteudo");
+  el("modal-titulo").textContent = `Ocorrência ${det.protocolo || "#" + det.id}`;
+  modal.classList.remove("hidden");
+
+  const lat = det.localizacao?.coordenadas?.latitude ?? det.localizacao?.latitude;
+  const lng = det.localizacao?.coordenadas?.longitude ?? det.localizacao?.longitude;
+  const historicoHtml =
+    det.historico && det.historico.length
+      ? `<div class="zz-timeline">${det.historico
+          .map((h, idx) => {
+            const st = h.statusRegistrado || h.statusNovo || h.statusAtual || det.status;
+            const isLast = idx === det.historico.length - 1;
+            const isConcluido =
+              !isLast ||
+              ["FINALIZADO_COM_SUCESSO", "FINALIZADO_COM_COMPLICACOES", "CANCELADO"].includes(st);
+            const side = idx % 2 === 0 ? "right" : "left";
+            const dataFmt = h.dataHora ? new Date(h.dataHora).toLocaleString("pt-BR") : "";
+            const iconSvg = isConcluido
+              ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+              : `<span class="zz-dot-inner"></span>`;
+            const isCurrent = isLast && !isConcluido;
+            return `
+          <div class="zz-item ${side} ${isCurrent ? "current" : ""} ${isConcluido ? "done" : ""}">
+            <div class="zz-marker">${iconSvg}</div>
+            <div class="zz-card-wrap">
+              <span class="zz-date-pill">${dataFmt}</span>
+              <div class="zz-card">
+                <div class="zz-card-title"><span class="status-badge status-${st}">${st}</span></div>
+                <div class="card-meta">Usuário #${h.usuarioId ?? "-"}${h.observacao ? " · " + h.observacao : ""}</div>
+              </div>
+            </div>
+          </div>`;
+          })
+          .join("")}</div>`
+      : "<p class='card-meta'>Sem registros de histórico.</p>";
+
+  const temCoords = lat != null && lng != null;
+  const imagensHtml =
+    det.imagens && det.imagens.length
+      ? `<div class="img-preview-grid" style="margin: 8px 0;">${det.imagens
+          .map((src, i) => `<img src="${src}" class="img-thumb" alt="Imagem ${i + 1} da ocorrência" />`)
+          .join("")}</div>`
+      : "";
+  body.innerHTML = `
+    <div><span class="status-badge status-${det.status}">${det.status}</span> <strong>${det.protocolo || ""}</strong></div>
+    <p><strong>Espécie:</strong> ${det.especieAnimal || "-"}</p>
+    <p><strong>Descrição:</strong> ${det.descricaoAnimal || "-"}</p>
+    ${imagensHtml}
+    <p><strong>Endereço:</strong> ${det.localizacao?.endereco || "-"}</p>
+    ${temCoords ? '<div id="modal-map" class="map-box" style="height: 220px;"></div>' : ""}
+    <p><strong>Comunicante:</strong> ${det.comunicante?.nome || "-"} (${det.comunicante?.email || "-"})</p>
+    <p><strong>Analista responsável:</strong> ${det.analistaResponsavelId ?? "Não atribuído"}</p>
+    <hr class="divider" />
+    <strong>Histórico de Status</strong>
+    ${historicoHtml}
+  `;
+
+  if (temCoords && typeof L !== "undefined") {
+    const modalMap = L.map("modal-map").setView([lat, lng], 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(modalMap);
+    L.marker([lat, lng]).addTo(modalMap);
+    setTimeout(() => modalMap.invalidateSize(), 100);
+  }
+}
+
 async function abrirDetalhesOcorrencia(id) {
   const modal = el("modal-detalhes");
   const body = el("modal-conteudo");
@@ -554,68 +623,7 @@ async function abrirDetalhesOcorrencia(id) {
 
   try {
     const det = await apiFetch(`${API.ocorrencias}/${id}`);
-    const lat = det.localizacao?.coordenadas?.latitude ?? det.localizacao?.latitude;
-    const lng = det.localizacao?.coordenadas?.longitude ?? det.localizacao?.longitude;
-    const coords = lat != null && lng != null ? `${lat}, ${lng}` : "-";
-    const historicoHtml =
-      det.historico && det.historico.length
-        ? `<div class="zz-timeline">${det.historico
-            .map((h, idx) => {
-              const st = h.statusRegistrado || h.statusNovo || h.statusAtual || det.status;
-              const isLast = idx === det.historico.length - 1;
-              const isConcluido =
-                !isLast ||
-                ["FINALIZADO_COM_SUCESSO", "FINALIZADO_COM_COMPLICACOES", "CANCELADO"].includes(st);
-              const side = idx % 2 === 0 ? "right" : "left";
-              const dataFmt = h.dataHora ? new Date(h.dataHora).toLocaleString("pt-BR") : "";
-              const iconSvg = isConcluido
-                ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
-                : `<span class="zz-dot-inner"></span>`;
-              const isCurrent = isLast && !isConcluido;
-              return `
-            <div class="zz-item ${side} ${isCurrent ? "current" : ""} ${isConcluido ? "done" : ""}">
-              <div class="zz-marker">${iconSvg}</div>
-              <div class="zz-card-wrap">
-                <span class="zz-date-pill">${dataFmt}</span>
-                <div class="zz-card">
-                  <div class="zz-card-title"><span class="status-badge status-${st}">${st}</span></div>
-                  <div class="card-meta">Usuário #${h.usuarioId ?? "-"}${h.observacao ? " · " + h.observacao : ""}</div>
-                </div>
-              </div>
-            </div>`;
-            })
-            .join("")}</div>`
-        : "<p class='card-meta'>Sem registros de histórico.</p>";
-
-    const temCoords = lat != null && lng != null;
-    const imagensHtml =
-      det.imagens && det.imagens.length
-        ? `<div class="img-preview-grid" style="margin: 8px 0;">${det.imagens
-            .map((src, i) => `<img src="${src}" class="img-thumb" alt="Imagem ${i + 1} da ocorrência" />`)
-            .join("")}</div>`
-        : "";
-    body.innerHTML = `
-      <div><span class="status-badge status-${det.status}">${det.status}</span> <strong>${det.protocolo || ""}</strong></div>
-      <p><strong>Espécie:</strong> ${det.especieAnimal || "-"}</p>
-      <p><strong>Descrição:</strong> ${det.descricaoAnimal || "-"}</p>
-      ${imagensHtml}
-      <p><strong>Endereço:</strong> ${det.localizacao?.endereco || "-"}</p>
-      ${temCoords ? '<div id="modal-map" class="map-box" style="height: 220px;"></div>' : ""}
-      <p><strong>Comunicante:</strong> ${det.comunicante?.nome || "-"} (${det.comunicante?.email || "-"})</p>
-      <p><strong>Analista responsável:</strong> ${det.analistaResponsavelId ?? "Não atribuído"}</p>
-      <hr class="divider" />
-      <strong>Histórico de Status</strong>
-      ${historicoHtml}
-    `;
-
-    if (temCoords && typeof L !== "undefined") {
-      const modalMap = L.map("modal-map").setView([lat, lng], 16);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-      }).addTo(modalMap);
-      L.marker([lat, lng]).addTo(modalMap);
-      setTimeout(() => modalMap.invalidateSize(), 100);
-    }
+    renderModalDetalhes(det);
   } catch (err) {
     body.innerHTML = `<p class='card-meta'>Erro ao carregar detalhes: ${err.message}</p>`;
   }
