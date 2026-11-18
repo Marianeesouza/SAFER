@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5435/notificacoes_db}
     username: ${DB_USER:safer}
-    password: ${DB_PASSWORD:safer}
+    password: ${DB_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -13,7 +13,7 @@ spring:
     host: ${RABBITMQ_HOST:localhost}
     port: 5672
     username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    password: ${RABBITMQ_PASSWORD}
     listener:
       simple:
         default-requeue-rejected: false

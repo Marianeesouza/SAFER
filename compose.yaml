@@ -3,14 +3,14 @@
 #   docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db rabbitmq mailhog
 #       -> só a infraestrutura, para rodar os serviços pela IDE (portas publicadas abaixo)
 #
-# Valores abaixo são APENAS para desenvolvimento. Em produção, defina os segredos por variável
-# de ambiente (arquivo .env, fora do controle de versão).
+# Segredos: copie .env.example para .env e preencha. O .env fica fora do controle de versão e o
+# compose não sobe sem ele (as variáveis obrigatórias são marcadas com :?).
 
 x-banco: &banco
   image: postgres:17
   environment: &banco-env
     POSTGRES_USER: safer
-    POSTGRES_PASSWORD: safer
+    POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
   healthcheck:
     test: ["CMD-SHELL", "pg_isready -U safer"]
     interval: 5s
@@ -21,7 +21,7 @@ x-servico: &servico
   environment: &servico-env
     EUREKA_URL: http://discovery-server:8761/eureka
     DB_USER: safer
-    DB_PASSWORD: safer
+    DB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
 
 services:
   # ---------- Bancos (um por serviço; nenhum serviço acessa o banco do outro) ----------
@@ -60,9 +60,12 @@ services:
   # ---------- Mensageria, e-mail de teste e geocodificação ----------
   rabbitmq:
     image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
     ports:
       - "5672:5672"
-      - "15672:15672"   # painel: guest / guest
+      - "15672:15672"   # painel: usuário e senha do .env
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -92,6 +95,9 @@ services:
     environment:
       <<: *servico-env
       DB_URL: jdbc:postgresql://usuarios-db:5432/usuarios_db
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?defina ADMIN_EMAIL no .env}
+      ADMIN_SENHA: ${ADMIN_SENHA:?defina ADMIN_SENHA no .env}
     depends_on:
       usuarios-db: { condition: service_healthy }
       discovery-server: { condition: service_started }
@@ -102,6 +108,8 @@ services:
       <<: *servico-env
       DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
       RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
     ports: ["8082:8082"]
     depends_on:
       ocorrencias-db: { condition: service_healthy }
@@ -135,6 +143,8 @@ services:
       <<: *servico-env
       DB_URL: jdbc:postgresql://notificacoes-db:5432/notificacoes_db
       RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
       MAIL_HOST: mailhog
     depends_on:
       notificacoes-db: { condition: service_healthy }
