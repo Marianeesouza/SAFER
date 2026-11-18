@@ -1,9 +1,27 @@
 package ufrpe.br.safer.usuarios.model;
 
+// Aplicacao do padrao State
 public enum Cargo {
-    COMUM,
-    ANALISTA,
-    ADMINISTRADOR;
+    COMUM {
+        @Override
+        public boolean notificarNovaOcorrencia() {
+            return false;
+        }
+    },
+    ANALISTA {
+        @Override
+        public boolean notificarNovaOcorrencia() {
+            return true;
+        }
+    },
+    ADMINISTRADOR {
+        @Override
+        public boolean notificarNovaOcorrencia() {
+            return true;
+        }
+    };
+
+    public abstract boolean notificarNovaOcorrencia();
 
     /**
      * Valida a transição de cargo conforme RN04:

@@ -58,6 +58,10 @@ public class Usuario {
     @Column(name = "atualizado_em", nullable = false)
     private LocalDateTime atualizadoEm;
 
+    public boolean notificarNovaOcorrencia() {
+        return cargo != null && cargo.notificarNovaOcorrencia();
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime agora = LocalDateTime.now();
