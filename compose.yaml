@@ -107,6 +107,7 @@ services:
     environment:
       <<: *servico-env
       DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
