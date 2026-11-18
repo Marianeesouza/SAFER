@@ -62,7 +62,9 @@ class OcorrenciasControllerTest {
                 1L,
                 new ComunicanteDTO("João Victor", "joao@ufrpe.br", "81999999999", "Aluno"),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
-                "Animal ferido"
+                "Sagui",
+                "Animal ferido",
+                List.of()
         );
 
         OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
@@ -71,11 +73,13 @@ class OcorrenciasControllerTest {
                 1L,
                 dto.comunicante(),
                 dto.localizacao(),
+                dto.especieAnimal(),
                 dto.descricaoAnimal(),
                 StatusOcorrencia.EM_ABERTO,
                 null,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                List.of()
         );
 
         when(ocorrenciasService.registrarOcorrencia(any())).thenReturn(response);
@@ -90,13 +94,51 @@ class OcorrenciasControllerTest {
     }
 
     @Test
+    @DisplayName("Deve rejeitar registro sem especie do animal")
+    void deveRejeitarRegistroSemEspecie() throws Exception {
+        RegistrarOcorrenciaDTO semEspecie = new RegistrarOcorrenciaDTO(
+                1L,
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
+                " ",
+                "Animal ferido",
+                List.of()
+        );
+
+        mockMvc.perform(post("/ocorrencias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(semEspecie)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar registro com mais de 5 imagens")
+    void deveRejeitarMaisDeCincoImagens() throws Exception {
+        RegistrarOcorrenciaDTO comSeisImagens = new RegistrarOcorrenciaDTO(
+                1L,
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
+                "Sagui",
+                "Animal ferido",
+                List.of("a", "b", "c", "d", "e", "f")
+        );
+
+        mockMvc.perform(post("/ocorrencias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(comSeisImagens)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("POST /ocorrencias deve retornar 400 Bad Request quando campos obrigatorios ausentes")
     void deveRetornarBadRequestQuandoCamposInvalidos() throws Exception {
         RegistrarOcorrenciaDTO invalido = new RegistrarOcorrenciaDTO(
                 null,
                 new ComunicanteDTO("", "email_invalido", null, null),
                 null,
-                ""
+                "Sagui",
+                "",
+                List.of()
         );
 
         mockMvc.perform(post("/ocorrencias")
@@ -115,11 +157,13 @@ class OcorrenciasControllerTest {
                 1L,
                 new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Sagui",
                 "Animal ferido",
                 StatusOcorrencia.EM_ATENDIMENTO,
                 99L,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                List.of()
         );
 
         when(ocorrenciasService.vincularAnalista(1L, 99L)).thenReturn(response);
@@ -157,11 +201,13 @@ class OcorrenciasControllerTest {
                 1L,
                 new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Sagui",
                 "Animal ferido",
                 StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
                 99L,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                List.of()
         );
 
         when(ocorrenciasService.atualizarStatus(eq(1L), any())).thenReturn(response);
@@ -198,11 +244,13 @@ class OcorrenciasControllerTest {
                 1L,
                 new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Sagui",
                 "Animal ferido",
                 StatusOcorrencia.CANCELADO,
                 null,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                List.of()
         );
 
         when(ocorrenciasService.cancelarOcorrencia(eq(1L), any())).thenReturn(response);
@@ -234,12 +282,14 @@ class OcorrenciasControllerTest {
                 10L,
                 new ComunicanteDTO("Maria", "maria@ufrpe.br", "81988888888", "Servidor"),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Reitoria"),
+                "Sagui",
                 "Pássaro ferido",
                 StatusOcorrencia.EM_ABERTO,
                 null,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
-                List.of(new HistoricoOcorrenciaDTO(1L, StatusOcorrencia.EM_ABERTO, 10L, "Criada", LocalDateTime.now()))
+                List.of(new HistoricoOcorrenciaDTO(1L, StatusOcorrencia.EM_ABERTO, 10L, "Criada", LocalDateTime.now())),
+                List.of()
         );
 
         when(ocorrenciasService.buscarDetalhesPorId(1L)).thenReturn(Optional.of(detalhada));
@@ -268,11 +318,13 @@ class OcorrenciasControllerTest {
                 10L,
                 new ComunicanteDTO("Maria", "maria@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Sagui",
                 "Gato ferido",
                 StatusOcorrencia.EM_ABERTO,
                 null,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
+                List.of(),
                 List.of()
         );
 
@@ -344,11 +396,19 @@ class OcorrenciasControllerTest {
     @DisplayName("PATCH /ocorrencias/{id}/status recebe o status como numero e a resposta devolve o nome")
     void deveReceberStatusNumericoEResponderComNome() throws Exception {
         OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
-                1L, PROTOCOLO_A, 1L,
+                1L,
+                PROTOCOLO_A,
+                1L,
                 new ComunicanteDTO("Joao", "joao@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Animal ferido", StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO, 99L,
-                LocalDateTime.now(), LocalDateTime.now());
+                "Sagui",
+                "Animal ferido",
+                StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
+                99L,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                List.of()
+        );
         when(ocorrenciasService.atualizarStatus(eq(1L), any())).thenReturn(response);
 
         mockMvc.perform(patch("/ocorrencias/1/status")

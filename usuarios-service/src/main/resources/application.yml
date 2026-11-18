@@ -9,6 +9,8 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  flyway:
+    enabled: true
 
 server:
   port: 8081
@@ -29,3 +31,9 @@ management:
 jwt:
   secret: ${JWT_SECRET:safer-ufrpe-secret-key-with-at-least-256-bits-for-hs256-signing}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+safer:
+  admin:
+    # Primeiro administrador, criado ao subir se ainda não existir (ver AdministradorInicial).
+    email: ${ADMIN_EMAIL:}
+    senha: ${ADMIN_SENHA:}

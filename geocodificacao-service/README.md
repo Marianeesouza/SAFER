@@ -30,7 +30,7 @@ O cache não expira. A chave de endereço é o texto sem espaços nas pontas e e
 | Chave | Variável de ambiente | Padrão |
 |---|---|---|
 | `spring.datasource.url` | `DB_URL` | `jdbc:postgresql://localhost:5436/geocodificacao_db` |
-| `spring.datasource.username/password` | `DB_USER` / `DB_PASSWORD` | `safer` / `safer` |
+| `spring.datasource.username/password` | `DB_USER` / `DB_PASSWORD` | `safer` / (obrigatória, sem padrão) |
 | `eureka.client.service-url.defaultZone` | `EUREKA_URL` | `http://localhost:8761/eureka` |
 | `safer.nominatim.url` | `NOMINATIM_URL` | `https://nominatim.openstreetmap.org` |
 | `safer.map.*` | — | tiles do OpenStreetMap, zoom máximo 19 |

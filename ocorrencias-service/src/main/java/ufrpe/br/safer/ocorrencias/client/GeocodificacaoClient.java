@@ -1,31 +1,23 @@
 package ufrpe.br.safer.ocorrencias.client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import ufrpe.br.safer.ocorrencias.dto.CampusValidationResponseDTO;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
-
 @Component
 @Slf4j
 public class GeocodificacaoClient {
 
+    // Nome do serviço no Eureka (spring.application.name do geocodificacao-service).
+    private static final String BASE_URL = "http://geocodificacao-service";
+
     private final RestClient restClient;
 
-    public GeocodificacaoClient(@Value("${safer.services.geocodificacao-url:http://localhost:8083}") String baseUrl) {
-        JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(
-                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
-        fabrica.setReadTimeout(Duration.ofSeconds(3));
-
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .requestFactory(fabrica)
-                .build();
+    public GeocodificacaoClient(@LoadBalanced RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.baseUrl(BASE_URL).build();
     }
 
     public boolean validarPontoNoCampus(Double latitude, Double longitude) {

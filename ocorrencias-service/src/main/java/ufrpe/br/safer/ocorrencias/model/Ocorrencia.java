@@ -1,12 +1,16 @@
 package ufrpe.br.safer.ocorrencias.model;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
@@ -39,6 +43,9 @@ public class Ocorrencia {
     @Embedded
     private DadosComunicante comunicante;
 
+    @Column(name = "especie_animal", length = 150)
+    private String especieAnimal;
+
     @Column(name = "descricao_animal", nullable = false, columnDefinition = "TEXT")
     private String descricaoAnimal;
 
@@ -52,6 +59,12 @@ public class Ocorrencia {
 
     @Column(name = "analista_responsavel_id")
     private Long analistaResponsavelId;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "ocorrencia_imagens", joinColumns = @JoinColumn(name = "ocorrencia_id"))
+    @Column(name = "imagem_url", columnDefinition = "TEXT")
+    @Builder.Default
+    private java.util.List<String> imagens = new java.util.ArrayList<>();
 
     @Version
     @Column(nullable = false)

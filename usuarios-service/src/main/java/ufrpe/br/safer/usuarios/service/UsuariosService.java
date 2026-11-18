@@ -10,6 +10,7 @@ import ufrpe.br.safer.usuarios.config.JwtService;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
 import ufrpe.br.safer.usuarios.dto.AtualizarPerfilDTO;
 import ufrpe.br.safer.usuarios.dto.CadastrarUsuarioDTO;
+import ufrpe.br.safer.usuarios.dto.DestinatarioNotificacaoDTO;
 import ufrpe.br.safer.usuarios.dto.LoginDTO;
 import ufrpe.br.safer.usuarios.dto.PermissaoResponseDTO;
 import ufrpe.br.safer.usuarios.dto.TokenResponseDTO;
@@ -24,6 +25,7 @@ import ufrpe.br.safer.usuarios.model.Login;
 import ufrpe.br.safer.usuarios.model.Usuario;
 import ufrpe.br.safer.usuarios.repository.UsuarioRepository;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -50,9 +52,9 @@ public class UsuariosService {
                 .nome(dto.nome().trim())
                 .login(login)
                 .relacaoUfrpe(dto.relacaoUfrpe())
-                .cargo(Cargo.COMUM)
                 .telefoneFixo(dto.telefoneFixo() != null ? dto.telefoneFixo().trim() : null)
                 .celular(dto.celular() != null ? dto.celular().trim() : null)
+                .cargo(Cargo.COMUM)
                 .build();
 
         Usuario salvo = usuarioRepository.save(usuario);
@@ -70,12 +72,7 @@ public class UsuariosService {
         }
 
         String token = jwtService.gerarToken(usuario);
-        return new TokenResponseDTO(
-                token,
-                "Bearer",
-                jwtService.getExpirationMs(),
-                UsuarioResponseDTO.fromEntity(usuario)
-        );
+        return new TokenResponseDTO(token, "Bearer", jwtService.getExpirationMs(), UsuarioResponseDTO.fromEntity(usuario));
     }
 
     @Transactional(readOnly = true)
@@ -90,38 +87,33 @@ public class UsuariosService {
         boolean alteraEmail = dto.email() != null && !dto.email().isBlank();
         boolean alteraSenha = dto.novaSenha() != null && !dto.novaSenha().isBlank();
 
-        if (alteraEmail || alteraSenha) {
-            if (dto.senhaAtual() == null || !passwordEncoder.matches(dto.senhaAtual(), usuario.getLogin().getSenhaHash())) {
-                throw new CredenciaisInvalidasException("Senha atual inválida ou não informada para alteração de credenciais.");
-            }
-        }
-
-        if (dto.nome() != null && !dto.nome().isBlank()) {
-            usuario.setNome(dto.nome().trim());
-        }
-
-        if (dto.relacaoUfrpe() != null) {
-            usuario.setRelacaoUfrpe(dto.relacaoUfrpe());
-        }
-
-        if (dto.telefoneFixo() != null) {
-            usuario.setTelefoneFixo(dto.telefoneFixo().trim());
-        }
-
-        if (dto.celular() != null) {
-            usuario.setCelular(dto.celular().trim());
-        }
-
         if (alteraEmail) {
             String novoEmail = dto.email().trim().toLowerCase();
-            if (!novoEmail.equals(usuario.getLogin().getEmail()) && usuarioRepository.existsByLoginEmail(novoEmail)) {
-                throw new EmailJaCadastradoException("Já existe um usuário cadastrado com o e-mail informado.");
+            if (!novoEmail.equals(usuario.getLogin().getEmail())
+                    && usuarioRepository.existsByLoginEmail(novoEmail)) {
+                throw new EmailJaCadastradoException("O e-mail informado já está em uso por outro usuário.");
             }
             usuario.getLogin().setEmail(novoEmail);
         }
 
         if (alteraSenha) {
+            if (dto.senhaAtual() == null || !passwordEncoder.matches(dto.senhaAtual(), usuario.getLogin().getSenhaHash())) {
+                throw new CredenciaisInvalidasException("A senha atual informada está incorreta.");
+            }
             usuario.getLogin().setSenhaHash(passwordEncoder.encode(dto.novaSenha()));
+        }
+
+        if (dto.nome() != null && !dto.nome().isBlank()) {
+            usuario.setNome(dto.nome().trim());
+        }
+        if (dto.relacaoUfrpe() != null) {
+            usuario.setRelacaoUfrpe(dto.relacaoUfrpe());
+        }
+        if (dto.telefoneFixo() != null) {
+            usuario.setTelefoneFixo(dto.telefoneFixo().trim());
+        }
+        if (dto.celular() != null) {
+            usuario.setCelular(dto.celular().trim());
         }
 
         Usuario atualizado = usuarioRepository.save(usuario);
@@ -138,6 +130,17 @@ public class UsuariosService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id));
         return UsuarioResponseDTO.fromEntity(usuario);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DestinatarioNotificacaoDTO> listarDestinatariosDeNovasOcorrencias() {
+        List<Cargo> cargosNotificados = Arrays.stream(Cargo.values())
+                .filter(Cargo::notificarNovaOcorrencia)
+                .toList();
+        return usuarioRepository.findByCargoIn(cargosNotificados)
+                .stream()
+                .map(DestinatarioNotificacaoDTO::fromEntity)
+                .toList();
     }
 
     @Transactional(readOnly = true)

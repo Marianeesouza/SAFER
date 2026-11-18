@@ -31,7 +31,7 @@ Só a infraestrutura, para rodar os serviços pela IDE (`bootRun` por módulo):
 docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db rabbitmq mailhog
 ```
 
-Painéis: Eureka `localhost:8761`, RabbitMQ `localhost:15672` (guest/guest), MailHog `localhost:8025`.
+Painéis: Eureka `localhost:8761`, RabbitMQ `localhost:15672` (usuário e senha do `.env`), MailHog `localhost:8025`.
 
 ## Estado
 

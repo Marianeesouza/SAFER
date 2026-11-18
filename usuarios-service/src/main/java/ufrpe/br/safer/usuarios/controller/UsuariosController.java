@@ -31,13 +31,7 @@ public class UsuariosController {
 
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> cadastrar(@Valid @RequestBody CadastrarUsuarioDTO dto) {
-        UsuarioResponseDTO criado = usuariosService.cadastrar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(criado);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(usuariosService.buscarPorId(id));
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuariosService.cadastrar(dto));
     }
 
     @GetMapping
@@ -45,10 +39,13 @@ public class UsuariosController {
         return ResponseEntity.ok(usuariosService.listarTodos());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(usuariosService.buscarPorId(id));
+    }
+
     @PatchMapping("/me")
-    public ResponseEntity<UsuarioResponseDTO> atualizarProprioPerfil(
-            @Valid @RequestBody AtualizarPerfilDTO dto
-    ) {
+    public ResponseEntity<UsuarioResponseDTO> atualizarProprioPerfil(@Valid @RequestBody AtualizarPerfilDTO dto) {
         return ResponseEntity.ok(usuariosService.atualizarProprioPerfil(dto));
     }
 

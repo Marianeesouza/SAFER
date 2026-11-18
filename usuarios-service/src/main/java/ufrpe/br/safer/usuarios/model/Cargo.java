@@ -16,4 +16,8 @@ public enum Cargo {
     public boolean ehComum() {
         return this == COMUM;
     }
+
+    public boolean notificarNovaOcorrencia() {
+        return this == ANALISTA || this == ADMINISTRADOR;
+    }
 }

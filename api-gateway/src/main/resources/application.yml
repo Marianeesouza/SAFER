@@ -19,6 +19,12 @@ spring:
                 - Path=/api/ocorrencias/**
               filters:
                 - StripPrefix=1
+            - id: geocodificacao
+              uri: lb://geocodificacao-service
+              predicates:
+                - Path=/api/geocoding/**
+              filters:
+                - StripPrefix=1
 
 server:
   port: 8080

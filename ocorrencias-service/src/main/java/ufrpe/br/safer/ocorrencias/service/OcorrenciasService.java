@@ -85,9 +85,11 @@ public class OcorrenciasService {
                 .protocolo(gerarProtocoloUnico())
                 .usuarioId(dto.usuarioId())
                 .comunicante(comunicante)
+                .especieAnimal(dto.especieAnimal().trim())
                 .descricaoAnimal(dto.descricaoAnimal().trim())
                 .localizacao(localizacao)
                 .status(StatusOcorrencia.EM_ABERTO)
+                .imagens(dto.imagens() != null ? new java.util.ArrayList<>(dto.imagens()) : new java.util.ArrayList<>())
                 .criadoEm(agora)
                 .atualizadoEm(agora)
                 .build();
@@ -107,6 +109,7 @@ public class OcorrenciasService {
         );
         eventPublisher.publicarOcorrenciaRegistrada(eventoRegistro);
         emailPublisher.notificarRegistro(eventoRegistro);
+        emailPublisher.notificarAnalistas(eventoRegistro);
 
         return OcorrenciaResponseDTO.fromEntity(salva);
     }

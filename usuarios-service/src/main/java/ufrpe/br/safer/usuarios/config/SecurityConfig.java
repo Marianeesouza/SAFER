@@ -43,6 +43,8 @@ public class SecurityConfig {
                         // Rotas públicas
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
+                        // Rotas internas entre serviços (mensageria/notificações)
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers(
                                 "/actuator/**",
                                 "/v3/api-docs/**",
