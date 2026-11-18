@@ -111,7 +111,6 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
-    ports: ["8082:8082"]
     depends_on:
       ocorrencias-db: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
@@ -125,7 +124,6 @@ services:
       DB_URL: jdbc:postgresql://geocodificacao-db:5432/geocodificacao_db
       # API pública do Nominatim
       NOMINATIM_URL: ${NOMINATIM_URL:-https://nominatim.openstreetmap.org}
-    ports: ["8083:8083"]
     depends_on:
       geocodificacao-db: { condition: service_healthy }
       discovery-server: { condition: service_started }
