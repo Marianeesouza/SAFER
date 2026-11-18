@@ -74,7 +74,9 @@ class OcorrenciasServiceTest {
                 1L,
                 new ComunicanteDTO("João Victor", "joao@ufrpe.br", "81999999999", "Aluno"),
                 new LocalizacaoDTO(-8.0163, -34.9501, "Rua Dom Manoel de Medeiros, s/n, Dois Irmãos"),
-                "Sagui ferido próximo ao CEAGRI"
+                "Sagui",
+                "Sagui ferido próximo ao CEAGRI",
+                List.of()
         );
 
         when(geocodificacaoClient.validarPontoNoCampus(-8.0163, -34.9501)).thenReturn(true);
@@ -98,20 +100,44 @@ class OcorrenciasServiceTest {
     }
 
     @Test
+    @DisplayName("Deve guardar a especie e as imagens informadas")
+    void deveGuardarEspecieEImagens() {
+        List<String> imagens = List.of("data:image/png;base64,AAAA", "data:image/png;base64,BBBB");
+        RegistrarOcorrenciaDTO dto = new RegistrarOcorrenciaDTO(
+                1L,
+                new ComunicanteDTO("Ana", "ana@ufrpe.br", null, null),
+                new LocalizacaoDTO(null, null, "Campus"),
+                "  Gato  ",
+                "Gato na pista",
+                imagens
+        );
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OcorrenciaResponseDTO response = ocorrenciasService.registrarOcorrencia(dto);
+
+        assertThat(response.especieAnimal()).isEqualTo("Gato");
+        assertThat(response.imagens()).containsExactlyElementsOf(imagens);
+    }
+
+    @Test
     @DisplayName("Deve rejeitar ocorrencia se as coordenadas forem parciais (apenas latitude ou apenas longitude)")
     void deveRejeitarCoordenadasParciais() {
         RegistrarOcorrenciaDTO apenasLat = new RegistrarOcorrenciaDTO(
                 1L,
                 new ComunicanteDTO("Ana", "ana@ufrpe.br", null, null),
                 new LocalizacaoDTO(-8.0163, null, "Campus"),
-                "Animal ferido"
+                "Sagui",
+                "Animal ferido",
+                List.of()
         );
 
         RegistrarOcorrenciaDTO apenasLng = new RegistrarOcorrenciaDTO(
                 1L,
                 new ComunicanteDTO("Ana", "ana@ufrpe.br", null, null),
                 new LocalizacaoDTO(null, -34.9501, "Campus"),
-                "Animal ferido"
+                "Sagui",
+                "Animal ferido",
+                List.of()
         );
 
         assertThatThrownBy(() -> ocorrenciasService.registrarOcorrencia(apenasLat))
@@ -130,7 +156,9 @@ class OcorrenciasServiceTest {
                 2L,
                 new ComunicanteDTO("Carlos Lima", "carlos@ufrpe.br", "81988887777", "Professor"),
                 new LocalizacaoDTO(null, null, "Departamento de Zootecnia, UFRPE"),
-                "Cavalo solto na pista"
+                "Sagui",
+                "Cavalo solto na pista",
+                List.of()
         );
 
         when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(invocation -> {
@@ -283,7 +311,9 @@ class OcorrenciasServiceTest {
                 null,
                 new ComunicanteDTO("Maria Silva", "maria@gmail.com", null, null),
                 new LocalizacaoDTO(-8.0500, -34.9000, "Fora da UFRPE"),
-                "Iguana avistada"
+                "Sagui",
+                "Iguana avistada",
+                List.of()
         );
 
         when(geocodificacaoClient.validarPontoNoCampus(-8.0500, -34.9000)).thenReturn(false);
