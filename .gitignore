@@ -40,3 +40,7 @@ bin/
 */.classpath
 */.settings/
 */bin/
+
+# Segredos locais
+.env
+!.env.example

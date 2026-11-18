@@ -119,6 +119,7 @@ public class OcorrenciasService {
         );
         eventPublisher.publicarOcorrenciaRegistrada(eventoRegistro);
         emailPublisher.notificarRegistro(eventoRegistro);
+        emailPublisher.notificarAnalistas(eventoRegistro);
 
         return OcorrenciaResponseDTO.fromEntity(salva);
     }

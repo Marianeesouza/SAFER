@@ -2,20 +2,21 @@ package ufrpe.br.safer.ocorrencias.client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import ufrpe.br.safer.ocorrencias.client.dto.PermissaoResponseDTO;
 import ufrpe.br.safer.ocorrencias.client.dto.TipoAcaoOcorrencia;
 import ufrpe.br.safer.ocorrencias.client.dto.ValidarPermissaoDTO;
+import ufrpe.br.safer.ocorrencias.dto.DestinatarioDTO;
 import ufrpe.br.safer.ocorrencias.exception.AcessoNegadoException;
 import ufrpe.br.safer.ocorrencias.exception.ServicoIndisponivelException;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -25,17 +26,24 @@ public class UsuariosClient {
 
     public UsuariosClient(
             @Value("${safer.services.usuarios-url:http://usuarios-service}") String baseUrl,
-            RestClient.Builder builder
+            @LoadBalanced RestClient.Builder builder
     ) {
-        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
-                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()
-        );
-        factory.setReadTimeout(Duration.ofSeconds(3));
-
         this.restClient = builder
                 .baseUrl(baseUrl)
-                .requestFactory(factory)
                 .build();
+    }
+
+    public List<DestinatarioDTO> listarDestinatariosDeNovasOcorrencias() {
+        try {
+            List<DestinatarioDTO> destinatarios = restClient.get()
+                    .uri("/internal/usuarios/destinatarios-novas-ocorrencias")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<DestinatarioDTO>>() {});
+            return destinatarios != null ? destinatarios : List.of();
+        } catch (RestClientException e) {
+            log.warn("Usuarios indisponível ({}): analistas não serão avisados desta ocorrência.", e.getMessage());
+            return List.of();
+        }
     }
 
     public void validarPermissaoOuFalhar(
@@ -67,7 +75,6 @@ public class UsuariosClient {
             throw e;
         } catch (RestClientException e) {
             log.error("Falha ao comunicar com usuarios-service para validação de permissão: {}", e.getMessage());
-            // Falhar fechado (fail-closed)
             throw new ServicoIndisponivelException(
                     "Serviço de validação de usuários temporariamente indisponível. Operação abortada por segurança."
             );

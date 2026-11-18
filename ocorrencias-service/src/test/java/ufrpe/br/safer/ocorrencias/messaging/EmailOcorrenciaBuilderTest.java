@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
+import ufrpe.br.safer.ocorrencias.dto.DestinatarioDTO;
 import ufrpe.br.safer.ocorrencias.messaging.command.EnviarEmailCommand;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaCanceladaEvent;
 import ufrpe.br.safer.ocorrencias.messaging.event.OcorrenciaRegistradaEvent;
@@ -25,6 +26,23 @@ class EmailOcorrenciaBuilderTest {
         assertThat(comando.destinatario()).isEqualTo("ana@ufrpe.br");
         assertThat(comando.assunto()).contains("OC-1");
         assertThat(comando.corpo()).contains("Ana", "OC-1", "Sagui ferido", "Bloco A");
+    }
+
+    @Test
+    void novaOcorrenciaParaAnalistaTrazDadosLinkEChavePorAnalista() {
+        OcorrenciaRegistradaEvent evento = new OcorrenciaRegistradaEvent(7L, "OC-1", "Ana", "ana@ufrpe.br",
+                "Sagui ferido", "Bloco A", StatusOcorrencia.EM_ABERTO, AGORA);
+        DestinatarioDTO analista = new DestinatarioDTO(3L, "Carlos", "carlos@ufrpe.br");
+
+        EnviarEmailCommand comando = EmailOcorrenciaBuilder.novaOcorrenciaParaAnalista(
+                evento, analista, "http://sistema.local");
+
+        assertThat(comando.chaveIdempotencia()).isEqualTo("ocorrencia-7-analista-3");
+        assertThat(comando.destinatario()).isEqualTo("carlos@ufrpe.br");
+        assertThat(comando.assunto()).contains("OC-1");
+        assertThat(comando.corpo()).contains("Carlos", "OC-1", "Sagui ferido", "Bloco A", "http://sistema.local");
+        // o e-mail do analista não expõe dados pessoais do comunicante
+        assertThat(comando.corpo()).doesNotContain("Ana", "ana@ufrpe.br");
     }
 
     @Test
