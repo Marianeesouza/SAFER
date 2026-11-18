@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
 import ufrpe.br.safer.usuarios.dto.AtualizarPerfilDTO;
 import ufrpe.br.safer.usuarios.dto.CadastrarUsuarioDTO;
+import ufrpe.br.safer.usuarios.dto.PermissaoResponseDTO;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
+import ufrpe.br.safer.usuarios.dto.ValidarPermissaoDTO;
 import ufrpe.br.safer.usuarios.service.UsuariosService;
 
 import java.util.List;
@@ -62,5 +64,13 @@ public class UsuariosController {
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         usuariosService.excluir(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/permissoes/validar")
+    public ResponseEntity<PermissaoResponseDTO> validarPermissao(
+            @PathVariable Long id,
+            @Valid @RequestBody ValidarPermissaoDTO dto
+    ) {
+        return ResponseEntity.ok(usuariosService.validarPermissaoOcorrencia(id, dto));
     }
 }

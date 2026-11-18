@@ -11,8 +11,10 @@ import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
 import ufrpe.br.safer.usuarios.dto.AtualizarPerfilDTO;
 import ufrpe.br.safer.usuarios.dto.CadastrarUsuarioDTO;
 import ufrpe.br.safer.usuarios.dto.LoginDTO;
+import ufrpe.br.safer.usuarios.dto.PermissaoResponseDTO;
 import ufrpe.br.safer.usuarios.dto.TokenResponseDTO;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
+import ufrpe.br.safer.usuarios.dto.ValidarPermissaoDTO;
 import ufrpe.br.safer.usuarios.exception.AcessoNegadoException;
 import ufrpe.br.safer.usuarios.exception.CredenciaisInvalidasException;
 import ufrpe.br.safer.usuarios.exception.EmailJaCadastradoException;
@@ -192,5 +194,35 @@ public class UsuariosService {
         String email = auth.getName();
         return usuarioRepository.findByLoginEmail(email)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário autenticado não encontrado na base de dados."));
+    }
+
+    @Transactional(readOnly = true)
+    public PermissaoResponseDTO validarPermissaoOcorrencia(Long id, ValidarPermissaoDTO dto) {
+        Usuario solicitante = obterUsuarioAutenticado();
+        if (!solicitante.getId().equals(id) && !solicitante.getCargo().ehAdministrador()) {
+            throw new AcessoNegadoException("O usuário autenticado não possui autorização para validar permissões de outro usuário.");
+        }
+
+        Usuario alvo = solicitante.getId().equals(id)
+                ? solicitante
+                : usuarioRepository.findById(id).orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id));
+
+        boolean concedido = switch (dto.acao()) {
+            case ASSUMIR -> alvo.podeAssumirOcorrencia();
+            case ATUALIZAR -> alvo.podeAtualizarOcorrencia(dto.analistaResponsavelId());
+            case CANCELAR -> alvo.podeCancelarOcorrencia(dto.criadorOcorrenciaId());
+        };
+
+        if (concedido) {
+            return PermissaoResponseDTO.concedida();
+        }
+
+        String motivo = switch (dto.acao()) {
+            case ASSUMIR -> "O cargo do usuário não permite assumir ocorrências.";
+            case ATUALIZAR -> "O usuário não possui permissão para atualizar esta ocorrência (deve ser o analista responsável ou administrador).";
+            case CANCELAR -> "O usuário não possui permissão para cancelar esta ocorrência (deve ser o criador ou administrador).";
+        };
+
+        return PermissaoResponseDTO.negada(motivo);
     }
 }
