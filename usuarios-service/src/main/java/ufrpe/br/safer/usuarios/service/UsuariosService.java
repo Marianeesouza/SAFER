@@ -1,6 +1,8 @@
 package ufrpe.br.safer.usuarios.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +14,6 @@ import ufrpe.br.safer.usuarios.dto.LoginDTO;
 import ufrpe.br.safer.usuarios.dto.TokenResponseDTO;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
 import ufrpe.br.safer.usuarios.exception.AcessoNegadoException;
-import ufrpe.br.safer.usuarios.exception.AlteracaoCargoInvalidaException;
 import ufrpe.br.safer.usuarios.exception.CredenciaisInvalidasException;
 import ufrpe.br.safer.usuarios.exception.EmailJaCadastradoException;
 import ufrpe.br.safer.usuarios.exception.UsuarioNaoEncontradoException;
@@ -76,13 +77,13 @@ public class UsuariosService {
     }
 
     @Transactional(readOnly = true)
-    public UsuarioResponseDTO obterUsuarioViaToken(String authorizationHeader) {
-        return UsuarioResponseDTO.fromEntity(autenticarPorHeader(authorizationHeader));
+    public UsuarioResponseDTO obterUsuarioLogado() {
+        return UsuarioResponseDTO.fromEntity(obterUsuarioAutenticado());
     }
 
     @Transactional
-    public UsuarioResponseDTO atualizarProprioPerfil(String authorizationHeader, AtualizarPerfilDTO dto) {
-        Usuario usuario = autenticarPorHeader(authorizationHeader);
+    public UsuarioResponseDTO atualizarProprioPerfil(AtualizarPerfilDTO dto) {
+        Usuario usuario = obterUsuarioAutenticado();
 
         boolean alteraEmail = dto.email() != null && !dto.email().isBlank();
         boolean alteraSenha = dto.novaSenha() != null && !dto.novaSenha().isBlank();
@@ -127,6 +128,11 @@ public class UsuariosService {
 
     @Transactional(readOnly = true)
     public UsuarioResponseDTO buscarPorId(Long id) {
+        Usuario solicitante = obterUsuarioAutenticado();
+        if (!solicitante.getId().equals(id) && !solicitante.getCargo().ehAdministrador()) {
+            throw new AcessoNegadoException("Acesso não autorizado aos dados de outro usuário.");
+        }
+
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id));
         return UsuarioResponseDTO.fromEntity(usuario);
@@ -134,6 +140,11 @@ public class UsuariosService {
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarTodos() {
+        Usuario solicitante = obterUsuarioAutenticado();
+        if (!solicitante.getCargo().ehAdministrador()) {
+            throw new AcessoNegadoException("Apenas administradores podem listar todos os usuários.");
+        }
+
         return usuarioRepository.findAll()
                 .stream()
                 .map(UsuarioResponseDTO::fromEntity)
@@ -141,30 +152,26 @@ public class UsuariosService {
     }
 
     @Transactional
-    public UsuarioResponseDTO atualizarCargo(String authorizationHeader, Long id, AtualizarCargoDTO dto) {
-        Usuario solicitante = autenticarPorHeader(authorizationHeader);
-        if (solicitante.getCargo() != Cargo.ADMINISTRADOR) {
+    public UsuarioResponseDTO atualizarCargo(Long id, AtualizarCargoDTO dto) {
+        Usuario solicitante = obterUsuarioAutenticado();
+        if (!solicitante.getCargo().ehAdministrador()) {
             throw new AcessoNegadoException("Apenas administradores podem alterar cargos de usuários.");
         }
 
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não encontrado com id: " + id));
 
-        if (!usuario.getCargo().podeAlterarPara(dto.novoCargo())) {
-            throw new AlteracaoCargoInvalidaException(
-                    "Transição de cargo inválida de " + usuario.getCargo() + " para " + dto.novoCargo() + "."
-            );
-        }
+        // Transição delegada ao padrão State em Usuario
+        usuario.mudarCargo(dto.novoCargo());
 
-        usuario.setCargo(dto.novoCargo());
         Usuario atualizado = usuarioRepository.save(usuario);
         return UsuarioResponseDTO.fromEntity(atualizado);
     }
 
     @Transactional
-    public void excluir(String authorizationHeader, Long id) {
-        Usuario solicitante = autenticarPorHeader(authorizationHeader);
-        if (solicitante.getCargo() != Cargo.ADMINISTRADOR) {
+    public void excluir(Long id) {
+        Usuario solicitante = obterUsuarioAutenticado();
+        if (!solicitante.getCargo().ehAdministrador()) {
             throw new AcessoNegadoException("Apenas administradores podem excluir usuários.");
         }
         if (solicitante.getId().equals(id)) {
@@ -176,18 +183,14 @@ public class UsuariosService {
         usuarioRepository.deleteById(id);
     }
 
-    private Usuario autenticarPorHeader(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new CredenciaisInvalidasException("Token de autenticação ausente ou inválido.");
+    public Usuario obterUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
+            throw new CredenciaisInvalidasException("Usuário não autenticado no contexto de segurança.");
         }
 
-        String token = authorizationHeader.substring(7).trim();
-        if (!jwtService.tokenValido(token)) {
-            throw new CredenciaisInvalidasException("Token de autenticação expirado ou inválido.");
-        }
-
-        String email = jwtService.extrairEmail(token);
+        String email = auth.getName();
         return usuarioRepository.findByLoginEmail(email)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário associado ao token não foi encontrado."));
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário autenticado não encontrado na base de dados."));
     }
 }

@@ -1,10 +1,14 @@
 package ufrpe.br.safer.usuarios.service;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ufrpe.br.safer.usuarios.config.JwtService;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
@@ -23,6 +27,7 @@ import ufrpe.br.safer.usuarios.model.RelacaoUfrpe;
 import ufrpe.br.safer.usuarios.model.Usuario;
 import ufrpe.br.safer.usuarios.repository.UsuarioRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,6 +51,21 @@ class UsuariosServiceTest {
 
     @InjectMocks
     private UsuariosService usuariosService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void autenticarComo(String email) {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
     @Test
     void deveCadastrarUsuarioComCargoComumESenhaCriptografada() {
@@ -129,7 +149,7 @@ class UsuariosServiceTest {
     }
 
     @Test
-    void deveObterUsuarioViaTokenValido() {
+    void deveObterUsuarioLogadoViaSecurityContext() {
         Usuario usuario = Usuario.builder()
                 .id(1L)
                 .nome("Maria Silva")
@@ -138,21 +158,13 @@ class UsuariosServiceTest {
                 .cargo(Cargo.ANALISTA)
                 .build();
 
-        when(jwtService.tokenValido("jwt-valido")).thenReturn(true);
-        when(jwtService.extrairEmail("jwt-valido")).thenReturn("maria@ufrpe.br");
+        autenticarComo("maria@ufrpe.br");
         when(usuarioRepository.findByLoginEmail("maria@ufrpe.br")).thenReturn(Optional.of(usuario));
 
-        UsuarioResponseDTO response = usuariosService.obterUsuarioViaToken("Bearer jwt-valido");
+        UsuarioResponseDTO response = usuariosService.obterUsuarioLogado();
 
         assertEquals("maria@ufrpe.br", response.email());
         assertEquals(Cargo.ANALISTA, response.cargo());
-    }
-
-    @Test
-    void deveLancarExcecaoQuandoTokenAusenteOuInvalido() {
-        assertThrows(CredenciaisInvalidasException.class, () -> usuariosService.obterUsuarioViaToken(null));
-        when(jwtService.tokenValido("invalido")).thenReturn(false);
-        assertThrows(CredenciaisInvalidasException.class, () -> usuariosService.obterUsuarioViaToken("Bearer invalido"));
     }
 
     @Test
@@ -171,13 +183,12 @@ class UsuariosServiceTest {
                 .cargo(Cargo.COMUM)
                 .build();
 
-        when(jwtService.tokenValido("token-admin")).thenReturn(true);
-        when(jwtService.extrairEmail("token-admin")).thenReturn("admin@ufrpe.br");
+        autenticarComo("admin@ufrpe.br");
         when(usuarioRepository.findByLoginEmail("admin@ufrpe.br")).thenReturn(Optional.of(admin));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UsuarioResponseDTO response = usuariosService.atualizarCargo("Bearer token-admin", 1L, new AtualizarCargoDTO(Cargo.ANALISTA));
+        UsuarioResponseDTO response = usuariosService.atualizarCargo(1L, new AtualizarCargoDTO(Cargo.ANALISTA));
 
         assertEquals(Cargo.ANALISTA, response.cargo());
     }
@@ -190,12 +201,11 @@ class UsuariosServiceTest {
                 .cargo(Cargo.COMUM)
                 .build();
 
-        when(jwtService.tokenValido("token-comum")).thenReturn(true);
-        when(jwtService.extrairEmail("token-comum")).thenReturn("comum@ufrpe.br");
+        autenticarComo("comum@ufrpe.br");
         when(usuarioRepository.findByLoginEmail("comum@ufrpe.br")).thenReturn(Optional.of(comum));
 
         assertThrows(AcessoNegadoException.class,
-                () -> usuariosService.atualizarCargo("Bearer token-comum", 1L, new AtualizarCargoDTO(Cargo.ANALISTA)));
+                () -> usuariosService.atualizarCargo(1L, new AtualizarCargoDTO(Cargo.ANALISTA)));
     }
 
     @Test
@@ -208,13 +218,12 @@ class UsuariosServiceTest {
                 .cargo(Cargo.ADMINISTRADOR)
                 .build();
 
-        when(jwtService.tokenValido("token-admin")).thenReturn(true);
-        when(jwtService.extrairEmail("token-admin")).thenReturn("admin@ufrpe.br");
+        autenticarComo("admin@ufrpe.br");
         when(usuarioRepository.findByLoginEmail("admin@ufrpe.br")).thenReturn(Optional.of(admin));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
 
         assertThrows(AlteracaoCargoInvalidaException.class,
-                () -> usuariosService.atualizarCargo("Bearer token-admin", 1L, new AtualizarCargoDTO(Cargo.ANALISTA)));
+                () -> usuariosService.atualizarCargo(1L, new AtualizarCargoDTO(Cargo.ANALISTA)));
     }
 
     @Test
@@ -227,20 +236,78 @@ class UsuariosServiceTest {
                 .cargo(Cargo.COMUM)
                 .build();
 
-        when(jwtService.tokenValido("token-maria")).thenReturn(true);
-        when(jwtService.extrairEmail("token-maria")).thenReturn("maria@ufrpe.br");
+        autenticarComo("maria@ufrpe.br");
         when(usuarioRepository.findByLoginEmail("maria@ufrpe.br")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("SenhaAtual@123", "$2a$10$hashed")).thenReturn(true);
         when(usuarioRepository.existsByLoginEmail("maria.nova@ufrpe.br")).thenReturn(false);
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UsuarioResponseDTO response = usuariosService.atualizarProprioPerfil(
-                "Bearer token-maria",
                 new AtualizarPerfilDTO("Maria Souza", "maria.nova@ufrpe.br", null, "SenhaAtual@123", null, null, "81988887777")
         );
 
         assertEquals("Maria Souza", response.nome());
         assertEquals("maria.nova@ufrpe.br", response.email());
         assertEquals("81988887777", response.celular());
+    }
+
+    @Test
+    void deveListarTodosQuandoSolicitanteForAdmin() {
+        Usuario admin = Usuario.builder()
+                .id(99L)
+                .login(Login.builder().email("admin@ufrpe.br").build())
+                .cargo(Cargo.ADMINISTRADOR)
+                .build();
+
+        autenticarComo("admin@ufrpe.br");
+        when(usuarioRepository.findByLoginEmail("admin@ufrpe.br")).thenReturn(Optional.of(admin));
+        when(usuarioRepository.findAll()).thenReturn(List.of(admin));
+
+        List<UsuarioResponseDTO> list = usuariosService.listarTodos();
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    void deveBloquearListarTodosQuandoSolicitanteNaoForAdmin() {
+        Usuario comum = Usuario.builder()
+                .id(1L)
+                .login(Login.builder().email("comum@ufrpe.br").build())
+                .cargo(Cargo.COMUM)
+                .build();
+
+        autenticarComo("comum@ufrpe.br");
+        when(usuarioRepository.findByLoginEmail("comum@ufrpe.br")).thenReturn(Optional.of(comum));
+
+        assertThrows(AcessoNegadoException.class, () -> usuariosService.listarTodos());
+    }
+
+    @Test
+    void devePermitirBuscarPorIdSeForOProprioUsuario() {
+        Usuario comum = Usuario.builder()
+                .id(1L)
+                .login(Login.builder().email("comum@ufrpe.br").build())
+                .cargo(Cargo.COMUM)
+                .build();
+
+        autenticarComo("comum@ufrpe.br");
+        when(usuarioRepository.findByLoginEmail("comum@ufrpe.br")).thenReturn(Optional.of(comum));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(comum));
+
+        UsuarioResponseDTO res = usuariosService.buscarPorId(1L);
+        assertEquals(1L, res.id());
+    }
+
+    @Test
+    void deveBloquearBuscarPorIdDeOutroUsuarioSeNaoForAdmin() {
+        Usuario comum = Usuario.builder()
+                .id(1L)
+                .login(Login.builder().email("comum@ufrpe.br").build())
+                .cargo(Cargo.COMUM)
+                .build();
+
+        autenticarComo("comum@ufrpe.br");
+        when(usuarioRepository.findByLoginEmail("comum@ufrpe.br")).thenReturn(Optional.of(comum));
+
+        assertThrows(AcessoNegadoException.class, () -> usuariosService.buscarPorId(2L));
     }
 }

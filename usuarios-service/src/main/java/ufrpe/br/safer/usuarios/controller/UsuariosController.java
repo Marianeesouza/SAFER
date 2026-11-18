@@ -2,7 +2,6 @@ package ufrpe.br.safer.usuarios.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ufrpe.br.safer.usuarios.dto.AtualizarCargoDTO;
@@ -47,27 +45,22 @@ public class UsuariosController {
 
     @PatchMapping("/me")
     public ResponseEntity<UsuarioResponseDTO> atualizarProprioPerfil(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @Valid @RequestBody AtualizarPerfilDTO dto
     ) {
-        return ResponseEntity.ok(usuariosService.atualizarProprioPerfil(authorizationHeader, dto));
+        return ResponseEntity.ok(usuariosService.atualizarProprioPerfil(dto));
     }
 
     @PatchMapping("/{id}/cargo")
     public ResponseEntity<UsuarioResponseDTO> atualizarCargo(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable Long id,
             @Valid @RequestBody AtualizarCargoDTO dto
     ) {
-        return ResponseEntity.ok(usuariosService.atualizarCargo(authorizationHeader, id, dto));
+        return ResponseEntity.ok(usuariosService.atualizarCargo(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
-            @PathVariable Long id
-    ) {
-        usuariosService.excluir(authorizationHeader, id);
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        usuariosService.excluir(id);
         return ResponseEntity.noContent().build();
     }
 }
