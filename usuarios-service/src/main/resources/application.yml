@@ -37,3 +37,11 @@ safer:
     # Primeiro administrador, criado ao subir se ainda não existir (ver AdministradorInicial).
     email: ${ADMIN_EMAIL:}
     senha: ${ADMIN_SENHA:}
+
+# Documentação interativa da API (Swagger). Desligada por padrão: ela descreve toda a API.
+# Para ligar ao rodar o serviço localmente: SWAGGER_ENABLED=true
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}

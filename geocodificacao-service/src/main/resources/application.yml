@@ -39,3 +39,11 @@ management:
     web:
       exposure:
         include: health
+
+# Documentação interativa da API (Swagger). Desligada por padrão: ela descreve toda a API.
+# Para ligar ao rodar o serviço localmente: SWAGGER_ENABLED=true
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
