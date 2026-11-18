@@ -8,8 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record RegistrarOcorrenciaDTO(
-        Long usuarioId,
-
         @NotNull(message = "Os dados do comunicante são obrigatórios")
         @Valid
         ComunicanteDTO comunicante,

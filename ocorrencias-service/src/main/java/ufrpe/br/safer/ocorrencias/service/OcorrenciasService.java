@@ -2,18 +2,23 @@ package ufrpe.br.safer.ocorrencias.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ufrpe.br.safer.ocorrencias.client.GeocodificacaoClient;
+import ufrpe.br.safer.ocorrencias.client.UsuariosClient;
+import ufrpe.br.safer.ocorrencias.client.dto.TipoAcaoOcorrencia;
 import ufrpe.br.safer.ocorrencias.dto.AtualizarStatusDTO;
 import ufrpe.br.safer.ocorrencias.dto.CancelarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.dto.HistoricoOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaDetalhadaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaResponseDTO;
 import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
+import ufrpe.br.safer.ocorrencias.exception.AcessoNegadoException;
+import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
-import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 import ufrpe.br.safer.ocorrencias.messaging.EmailNotificacaoPublisher;
 import ufrpe.br.safer.ocorrencias.messaging.OcorrenciaEventPublisher;
@@ -28,6 +33,7 @@ import ufrpe.br.safer.ocorrencias.model.Ocorrencia;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
 import ufrpe.br.safer.ocorrencias.repository.HistoricoOcorrenciaRepository;
 import ufrpe.br.safer.ocorrencias.repository.OcorrenciaRepository;
+import ufrpe.br.safer.ocorrencias.security.UsuarioAutenticado;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,6 +49,7 @@ public class OcorrenciasService {
     private final OcorrenciaRepository ocorrenciaRepository;
     private final HistoricoOcorrenciaRepository historicoOcorrenciaRepository;
     private final GeocodificacaoClient geocodificacaoClient;
+    private final UsuariosClient usuariosClient;
     private final OcorrenciaEventPublisher eventPublisher;
     private final EmailNotificacaoPublisher emailPublisher;
 
@@ -81,9 +88,12 @@ public class OcorrenciasService {
                 .coordenadas(coordenadas)
                 .build();
 
+        UsuarioAutenticado usuarioAutenticado = obterUsuarioAutenticadoOpcional();
+        Long usuarioId = usuarioAutenticado != null ? usuarioAutenticado.id() : null;
+
         Ocorrencia ocorrencia = Ocorrencia.builder()
                 .protocolo(gerarProtocoloUnico())
-                .usuarioId(dto.usuarioId())
+                .usuarioId(usuarioId)
                 .comunicante(comunicante)
                 .especieAnimal(dto.especieAnimal().trim())
                 .descricaoAnimal(dto.descricaoAnimal().trim())
@@ -95,7 +105,7 @@ public class OcorrenciasService {
                 .build();
 
         Ocorrencia salva = ocorrenciaRepository.save(ocorrencia);
-        registrarHistorico(salva, StatusOcorrencia.EM_ABERTO, dto.usuarioId(), "Ocorrência registrada no sistema.", agora);
+        registrarHistorico(salva, StatusOcorrencia.EM_ABERTO, usuarioId, "Ocorrência registrada no sistema.", agora);
 
         OcorrenciaRegistradaEvent eventoRegistro = new OcorrenciaRegistradaEvent(
                 salva.getId(),
@@ -115,20 +125,32 @@ public class OcorrenciasService {
     }
 
     @Transactional
-    public OcorrenciaResponseDTO vincularAnalista(Long id, Long analistaId) {
+    public OcorrenciaResponseDTO vincularAnalista(Long id) {
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
+        String token = obterTokenAtual();
+
         Ocorrencia ocorrencia = buscarComBloqueio(id);
 
         if (ocorrencia.getStatus() != StatusOcorrencia.EM_ABERTO || ocorrencia.getAnalistaResponsavelId() != null) {
             throw new OcorrenciaJaAssumidaException("Esta ocorrência já foi assumida por outro analista ou não está mais disponível para atendimento.");
         }
 
+        // Delegação de autorização ao State em usuarios-service (fail-closed)
+        usuariosClient.validarPermissaoOuFalhar(
+                usuario.id(),
+                TipoAcaoOcorrencia.ASSUMIR,
+                ocorrencia.getUsuarioId(),
+                ocorrencia.getAnalistaResponsavelId(),
+                token
+        );
+
         LocalDateTime agora = LocalDateTime.now();
-        ocorrencia.setAnalistaResponsavelId(analistaId);
+        ocorrencia.setAnalistaResponsavelId(usuario.id());
         ocorrencia.setStatus(StatusOcorrencia.EM_ATENDIMENTO);
         ocorrencia.setAtualizadoEm(agora);
 
-        String observacao = "Atendimento assumido pelo analista ID " + analistaId + ".";
-        registrarHistorico(ocorrencia, StatusOcorrencia.EM_ATENDIMENTO, analistaId, observacao, agora);
+        String observacao = "Atendimento assumido pelo analista ID " + usuario.id() + ".";
+        registrarHistorico(ocorrencia, StatusOcorrencia.EM_ATENDIMENTO, usuario.id(), observacao, agora);
 
         StatusOcorrenciaAlteradoEvent eventoStatus = new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
@@ -136,7 +158,7 @@ public class OcorrenciasService {
                 ocorrencia.getComunicante().getEmail(),
                 StatusOcorrencia.EM_ABERTO,
                 StatusOcorrencia.EM_ATENDIMENTO,
-                analistaId,
+                usuario.id(),
                 observacao,
                 agora
         );
@@ -148,8 +170,10 @@ public class OcorrenciasService {
 
     @Transactional
     public OcorrenciaResponseDTO atualizarStatus(Long id, AtualizarStatusDTO dto) {
-        StatusOcorrencia novoStatus = StatusOcorrencia.deCodigo(dto.novoStatus());
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
+        String token = obterTokenAtual();
 
+        StatusOcorrencia novoStatus = StatusOcorrencia.deCodigo(dto.novoStatus());
         Ocorrencia ocorrencia = buscarComBloqueio(id);
         StatusOcorrencia statusAtual = ocorrencia.getStatus();
 
@@ -165,6 +189,15 @@ public class OcorrenciasService {
             );
         }
 
+        // Delegação de autorização ao State em usuarios-service (fail-closed)
+        usuariosClient.validarPermissaoOuFalhar(
+                usuario.id(),
+                TipoAcaoOcorrencia.ATUALIZAR,
+                ocorrencia.getUsuarioId(),
+                ocorrencia.getAnalistaResponsavelId(),
+                token
+        );
+
         LocalDateTime agora = LocalDateTime.now();
         ocorrencia.setStatus(novoStatus);
         ocorrencia.setAtualizadoEm(agora);
@@ -172,7 +205,7 @@ public class OcorrenciasService {
         String observacao = (dto.observacao() != null && !dto.observacao().isBlank())
                 ? dto.observacao().trim()
                 : "Status alterado para " + novoStatus;
-        registrarHistorico(ocorrencia, novoStatus, dto.analistaId(), observacao, agora);
+        registrarHistorico(ocorrencia, novoStatus, usuario.id(), observacao, agora);
 
         StatusOcorrenciaAlteradoEvent eventoStatus = new StatusOcorrenciaAlteradoEvent(
                 ocorrencia.getId(),
@@ -180,7 +213,7 @@ public class OcorrenciasService {
                 ocorrencia.getComunicante().getEmail(),
                 statusAtual,
                 novoStatus,
-                dto.analistaId(),
+                usuario.id(),
                 observacao,
                 agora
         );
@@ -192,6 +225,9 @@ public class OcorrenciasService {
 
     @Transactional
     public OcorrenciaResponseDTO cancelarOcorrencia(Long id, CancelarOcorrenciaDTO dto) {
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
+        String token = obterTokenAtual();
+
         Ocorrencia ocorrencia = buscarComBloqueio(id);
 
         if (ocorrencia.getStatus() != StatusOcorrencia.EM_ABERTO) {
@@ -200,18 +236,27 @@ public class OcorrenciasService {
             );
         }
 
+        // Delegação de autorização ao State em usuarios-service (fail-closed)
+        usuariosClient.validarPermissaoOuFalhar(
+                usuario.id(),
+                TipoAcaoOcorrencia.CANCELAR,
+                ocorrencia.getUsuarioId(),
+                ocorrencia.getAnalistaResponsavelId(),
+                token
+        );
+
         LocalDateTime agora = LocalDateTime.now();
         String justificativa = dto.justificativa().trim();
         ocorrencia.setStatus(StatusOcorrencia.CANCELADO);
         ocorrencia.setAtualizadoEm(agora);
 
-        registrarHistorico(ocorrencia, StatusOcorrencia.CANCELADO, dto.usuarioId(), "Cancelamento: " + justificativa, agora);
+        registrarHistorico(ocorrencia, StatusOcorrencia.CANCELADO, usuario.id(), "Cancelamento: " + justificativa, agora);
 
         OcorrenciaCanceladaEvent eventoCancelamento = new OcorrenciaCanceladaEvent(
                 ocorrencia.getId(),
                 ocorrencia.getProtocolo(),
                 ocorrencia.getComunicante().getEmail(),
-                dto.usuarioId(),
+                usuario.id(),
                 justificativa,
                 agora
         );
@@ -223,7 +268,24 @@ public class OcorrenciasService {
 
     @Transactional(readOnly = true)
     public Optional<OcorrenciaDetalhadaDTO> buscarDetalhesPorId(Long id) {
-        return ocorrenciaRepository.findById(id).map(this::montarOcorrenciaDetalhada);
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
+        Optional<Ocorrencia> optOcorrencia = ocorrenciaRepository.findById(id);
+
+        if (optOcorrencia.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Ocorrencia ocorrencia = optOcorrencia.get();
+        boolean ehCriador = ocorrencia.getUsuarioId() != null && ocorrencia.getUsuarioId().equals(usuario.id());
+        boolean ehAnalistaResponsavel = ocorrencia.getAnalistaResponsavelId() != null
+                && ocorrencia.getAnalistaResponsavelId().equals(usuario.id());
+        boolean ehAdmin = usuario.ehAdministrador();
+
+        if (!ehCriador && !ehAnalistaResponsavel && !ehAdmin) {
+            throw new AcessoNegadoException("Acesso restrito ao criador, analista responsável ou administrador.");
+        }
+
+        return Optional.of(montarOcorrenciaDetalhada(ocorrencia));
     }
 
     @Transactional(readOnly = true)
@@ -238,6 +300,10 @@ public class OcorrenciasService {
 
     @Transactional(readOnly = true)
     public List<OcorrenciaResponseDTO> listarPorUsuario(Long usuarioId) {
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
+        if (!usuario.id().equals(usuarioId) && !usuario.ehAdministrador()) {
+            throw new AcessoNegadoException("Você só pode consultar suas próprias ocorrências.");
+        }
         return paraResposta(ocorrenciaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuarioId));
     }
 
@@ -246,6 +312,30 @@ public class OcorrenciasService {
         return paraResposta(status != null
                 ? ocorrenciaRepository.findByStatusOrderByCriadoEmDesc(status)
                 : ocorrenciaRepository.findAllByOrderByCriadoEmDesc());
+    }
+
+    private UsuarioAutenticado obterUsuarioAutenticadoObrigatorio() {
+        UsuarioAutenticado usuario = obterUsuarioAutenticadoOpcional();
+        if (usuario == null) {
+            throw new AcessoNegadoException("Autenticação necessária para realizar esta operação.");
+        }
+        return usuario;
+    }
+
+    private UsuarioAutenticado obterUsuarioAutenticadoOpcional() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UsuarioAutenticado usuario) {
+            return usuario;
+        }
+        return null;
+    }
+
+    private String obterTokenAtual() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getCredentials() instanceof String token) {
+            return token;
+        }
+        return "";
     }
 
     private String gerarProtocoloUnico() {
@@ -258,7 +348,6 @@ public class OcorrenciasService {
         return protocolo;
     }
 
-    /** Lê a ocorrência bloqueando a linha: operações concorrentes sobre ela passam a ser serializadas. */
     private Ocorrencia buscarComBloqueio(Long id) {
         return ocorrenciaRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new OcorrenciaNaoEncontradaException("Ocorrência não encontrada com o ID: " + id));

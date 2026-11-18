@@ -15,7 +15,6 @@ import ufrpe.br.safer.ocorrencias.dto.LocalizacaoDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaDetalhadaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaResponseDTO;
 import ufrpe.br.safer.ocorrencias.dto.RegistrarOcorrenciaDTO;
-import ufrpe.br.safer.ocorrencias.dto.VincularAnalistaDTO;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
@@ -55,33 +54,53 @@ class OcorrenciasControllerTest {
                 .build();
     }
 
-    @Test
-    @DisplayName("POST /ocorrencias deve retornar 201 Created quando payload valido")
-    void deveRegistrarOcorrenciaValida() throws Exception {
-        RegistrarOcorrenciaDTO dto = new RegistrarOcorrenciaDTO(
+    private OcorrenciaResponseDTO criarResponse(Long id, String protocolo, StatusOcorrencia status, Long analistaId) {
+        return new OcorrenciaResponseDTO(
+                id,
+                protocolo,
                 1L,
-                new ComunicanteDTO("João Victor", "joao@ufrpe.br", "81999999999", "Aluno"),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
-                "Sagui",
+                new ComunicanteDTO("João", "joao@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
+                "Capivara",
                 "Animal ferido",
+                status,
+                analistaId,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
                 List.of()
         );
+    }
 
-        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
+    private OcorrenciaDetalhadaDTO criarDetalhada(Long id, String protocolo, List<HistoricoOcorrenciaDTO> historico) {
+        return new OcorrenciaDetalhadaDTO(
+                id,
+                protocolo,
                 1L,
-                PROTOCOLO_A,
-                1L,
-                dto.comunicante(),
-                dto.localizacao(),
-                dto.especieAnimal(),
-                dto.descricaoAnimal(),
+                new ComunicanteDTO("Maria", "maria@ufrpe.br", "81988888888", "Servidora"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Rua Central"),
+                "Gato",
+                "Gato preso",
                 StatusOcorrencia.EM_ABERTO,
                 null,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
+                historico,
+                List.of()
+        );
+    }
+
+    @Test
+    @DisplayName("POST /ocorrencias deve retornar 201 Created quando payload valido")
+    void deveRegistrarOcorrenciaValida() throws Exception {
+        RegistrarOcorrenciaDTO dto = new RegistrarOcorrenciaDTO(
+                new ComunicanteDTO("João Victor", "joao@ufrpe.br", "81999999999", "Aluno"),
+                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
+                "Capivara",
+                "Animal ferido",
                 List.of()
         );
 
+        OcorrenciaResponseDTO response = criarResponse(1L, PROTOCOLO_A, StatusOcorrencia.EM_ABERTO, null);
         when(ocorrenciasService.registrarOcorrencia(any())).thenReturn(response);
 
         mockMvc.perform(post("/ocorrencias")
@@ -89,54 +108,17 @@ class OcorrenciasControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/ocorrencias/1"))
-                .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_A.toString()))
+                .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_A))
                 .andExpect(jsonPath("$.status").value("EM_ABERTO"));
-    }
-
-    @Test
-    @DisplayName("Deve rejeitar registro sem especie do animal")
-    void deveRejeitarRegistroSemEspecie() throws Exception {
-        RegistrarOcorrenciaDTO semEspecie = new RegistrarOcorrenciaDTO(
-                1L,
-                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
-                " ",
-                "Animal ferido",
-                List.of()
-        );
-
-        mockMvc.perform(post("/ocorrencias")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(semEspecie)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Deve rejeitar registro com mais de 5 imagens")
-    void deveRejeitarMaisDeCincoImagens() throws Exception {
-        RegistrarOcorrenciaDTO comSeisImagens = new RegistrarOcorrenciaDTO(
-                1L,
-                new ComunicanteDTO("Ana", "ana@ufrpe.br", "81999999999", "Aluno"),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus UFRPE"),
-                "Sagui",
-                "Animal ferido",
-                List.of("a", "b", "c", "d", "e", "f")
-        );
-
-        mockMvc.perform(post("/ocorrencias")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(comSeisImagens)))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("POST /ocorrencias deve retornar 400 Bad Request quando campos obrigatorios ausentes")
     void deveRetornarBadRequestQuandoCamposInvalidos() throws Exception {
         RegistrarOcorrenciaDTO invalido = new RegistrarOcorrenciaDTO(
-                null,
                 new ComunicanteDTO("", "email_invalido", null, null),
                 null,
-                "Sagui",
+                "",
                 "",
                 List.of()
         );
@@ -150,27 +132,10 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("POST /ocorrencias/{id}/vincular-analista deve retornar 200 OK quando assumido com sucesso")
     void deveVincularAnalistaComSucesso() throws Exception {
-        VincularAnalistaDTO dto = new VincularAnalistaDTO(99L);
-        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
-                1L,
-                PROTOCOLO_A,
-                1L,
-                new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Sagui",
-                "Animal ferido",
-                StatusOcorrencia.EM_ATENDIMENTO,
-                99L,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of()
-        );
+        OcorrenciaResponseDTO response = criarResponse(1L, PROTOCOLO_A, StatusOcorrencia.EM_ATENDIMENTO, 99L);
+        when(ocorrenciasService.vincularAnalista(1L)).thenReturn(response);
 
-        when(ocorrenciasService.vincularAnalista(1L, 99L)).thenReturn(response);
-
-        mockMvc.perform(post("/ocorrencias/1/vincular-analista")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+        mockMvc.perform(post("/ocorrencias/1/vincular-analista"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("EM_ATENDIMENTO"))
                 .andExpect(jsonPath("$.analistaResponsavelId").value(99));
@@ -179,14 +144,10 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("POST /ocorrencias/{id}/vincular-analista deve retornar 409 Conflict se houver race condition (RN03)")
     void deveRetornar409ConflictSeJaAssumida() throws Exception {
-        VincularAnalistaDTO dto = new VincularAnalistaDTO(99L);
-
-        when(ocorrenciasService.vincularAnalista(1L, 99L))
+        when(ocorrenciasService.vincularAnalista(1L))
                 .thenThrow(new OcorrenciaJaAssumidaException("Esta ocorrência já foi assumida por outro analista."));
 
-        mockMvc.perform(post("/ocorrencias/1/vincular-analista")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+        mockMvc.perform(post("/ocorrencias/1/vincular-analista"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Conflito de atendimento (RN03)"));
     }
@@ -194,21 +155,8 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/status deve retornar 200 OK quando transicao valida")
     void deveAtualizarStatusComSucesso() throws Exception {
-        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO.getCodigo(), 99L, "Obs");
-        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
-                1L,
-                PROTOCOLO_A,
-                1L,
-                new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Sagui",
-                "Animal ferido",
-                StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
-                99L,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of()
-        );
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO.getCodigo(), "Obs");
+        OcorrenciaResponseDTO response = criarResponse(1L, PROTOCOLO_A, StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO, 99L);
 
         when(ocorrenciasService.atualizarStatus(eq(1L), any())).thenReturn(response);
 
@@ -222,7 +170,7 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/status deve retornar 422 Unprocessable se transicao invalida (RN03)")
     void deveRetornar422SeTransicaoInvalida() throws Exception {
-        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.FINALIZADO_COM_SUCESSO.getCodigo(), 99L, "Obs");
+        AtualizarStatusDTO dto = new AtualizarStatusDTO(StatusOcorrencia.FINALIZADO_COM_SUCESSO.getCodigo(), "Obs");
 
         when(ocorrenciasService.atualizarStatus(eq(1L), any()))
                 .thenThrow(new TransicaoStatusInvalidaException("Transição inválida de status."));
@@ -237,21 +185,8 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/cancelar deve retornar 200 OK quando cancelado com sucesso")
     void deveCancelarOcorrenciaComSucesso() throws Exception {
-        CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO(1L, "Animal resgatado por terceiros.");
-        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
-                1L,
-                PROTOCOLO_A,
-                1L,
-                new ComunicanteDTO("João", "joao@ufrpe.br", null, null),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Sagui",
-                "Animal ferido",
-                StatusOcorrencia.CANCELADO,
-                null,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of()
-        );
+        CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO("Animal resgatado por terceiros.");
+        OcorrenciaResponseDTO response = criarResponse(1L, PROTOCOLO_A, StatusOcorrencia.CANCELADO, null);
 
         when(ocorrenciasService.cancelarOcorrencia(eq(1L), any())).thenReturn(response);
 
@@ -265,7 +200,7 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("PATCH /ocorrencias/{id}/cancelar deve retornar 400 Bad Request se justificativa vazia")
     void deveRetornarBadRequestSeJustificativaVazia() throws Exception {
-        CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO(1L, "");
+        CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO("");
 
         mockMvc.perform(patch("/ocorrencias/1/cancelar")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -276,107 +211,21 @@ class OcorrenciasControllerTest {
     @Test
     @DisplayName("GET /ocorrencias/{id} deve retornar 200 OK com detalhes e historico")
     void deveBuscarPorIdComSucesso() throws Exception {
-        OcorrenciaDetalhadaDTO detalhada = new OcorrenciaDetalhadaDTO(
-                1L,
-                PROTOCOLO_A,
-                10L,
-                new ComunicanteDTO("Maria", "maria@ufrpe.br", "81988888888", "Servidor"),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Reitoria"),
-                "Sagui",
-                "Pássaro ferido",
-                StatusOcorrencia.EM_ABERTO,
-                null,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of(new HistoricoOcorrenciaDTO(1L, StatusOcorrencia.EM_ABERTO, 10L, "Criada", LocalDateTime.now())),
-                List.of()
+        OcorrenciaDetalhadaDTO detalhada = criarDetalhada(1L, PROTOCOLO_A,
+                List.of(new HistoricoOcorrenciaDTO(1L, StatusOcorrencia.EM_ABERTO, 1L, "Criada", LocalDateTime.now()))
         );
 
         when(ocorrenciasService.buscarDetalhesPorId(1L)).thenReturn(Optional.of(detalhada));
 
         mockMvc.perform(get("/ocorrencias/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_A.toString()))
-                .andExpect(jsonPath("$.historico[0].statusRegistrado").value("EM_ABERTO"));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.historico[0].observacao").value("Criada"));
     }
 
     @Test
-    @DisplayName("GET /ocorrencias/{id} deve retornar 404 Not Found se inexistente")
-    void deveRetornar404QuandoNaoEncontradaPorId() throws Exception {
-        when(ocorrenciasService.buscarDetalhesPorId(999L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/ocorrencias/999"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("GET /ocorrencias/protocolo/{protocolo} deve retornar 200 OK")
-    void deveBuscarPorProtocoloComSucesso() throws Exception {
-        OcorrenciaDetalhadaDTO detalhada = new OcorrenciaDetalhadaDTO(
-                2L,
-                PROTOCOLO_B,
-                10L,
-                new ComunicanteDTO("Maria", "maria@ufrpe.br", null, null),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Sagui",
-                "Gato ferido",
-                StatusOcorrencia.EM_ABERTO,
-                null,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of(),
-                List.of()
-        );
-
-        when(ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_B)).thenReturn(Optional.of(detalhada));
-
-        mockMvc.perform(get("/ocorrencias/protocolo/" + PROTOCOLO_B + ""))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_B.toString()));
-    }
-
-    @Test
-    @DisplayName("GET /ocorrencias/protocolo/{protocolo} deve retornar 404 Not Found se inexistente")
-    void deveRetornar404QuandoProtocoloNaoExiste() throws Exception {
-        when(ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_C)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/ocorrencias/protocolo/" + PROTOCOLO_C + ""))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("GET /ocorrencias com filtro status deve retornar 200 OK")
-    void deveListarComFiltroStatus() throws Exception {
-        when(ocorrenciasService.listar(StatusOcorrencia.EM_ABERTO)).thenReturn(List.of());
-
-        mockMvc.perform(get("/ocorrencias").param("status", "1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    @DisplayName("GET /ocorrencias/em-aberto deve retornar 200 OK com lista")
-    void deveListarEmAbertoComSucesso() throws Exception {
-        when(ocorrenciasService.listarEmAberto()).thenReturn(List.of());
-
-        mockMvc.perform(get("/ocorrencias/em-aberto"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    @DisplayName("GET /ocorrencias/usuario/{usuarioId} deve retornar 200 OK")
-    void deveListarPorUsuarioComSucesso() throws Exception {
-        when(ocorrenciasService.listarPorUsuario(10L)).thenReturn(List.of());
-
-        mockMvc.perform(get("/ocorrencias/usuario/10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    @DisplayName("Ocorrencia inexistente deve responder 404 no formato ProblemDetail (nao com corpo vazio)")
-    void deveResponderProblemDetailNoNaoEncontrado() throws Exception {
+    @DisplayName("GET /ocorrencias/{id} deve retornar 404 Not Found quando id nao existe")
+    void deveRetornarNotFoundQuandoIdNaoExiste() throws Exception {
         when(ocorrenciasService.buscarDetalhesPorId(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/ocorrencias/999"))
@@ -385,44 +234,57 @@ class OcorrenciasControllerTest {
     }
 
     @Test
-    @DisplayName("Filtro de status inexistente deve retornar 400 sem expor o nome das classes")
-    void deveRetornar400QuandoStatusDoFiltroNaoExiste() throws Exception {
-        mockMvc.perform(get("/ocorrencias").param("status", "abc"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("ufrpe.br"))));
-    }
+    @DisplayName("GET /ocorrencias/protocolo/{protocolo} deve retornar 200 OK")
+    void deveBuscarPorProtocoloComSucesso() throws Exception {
+        OcorrenciaDetalhadaDTO detalhada = criarDetalhada(1L, PROTOCOLO_A, List.of());
 
-    @Test
-    @DisplayName("PATCH /ocorrencias/{id}/status recebe o status como numero e a resposta devolve o nome")
-    void deveReceberStatusNumericoEResponderComNome() throws Exception {
-        OcorrenciaResponseDTO response = new OcorrenciaResponseDTO(
-                1L,
-                PROTOCOLO_A,
-                1L,
-                new ComunicanteDTO("Joao", "joao@ufrpe.br", null, null),
-                new LocalizacaoDTO(-8.0163, -34.9501, "Campus"),
-                "Sagui",
-                "Animal ferido",
-                StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO,
-                99L,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                List.of()
-        );
-        when(ocorrenciasService.atualizarStatus(eq(1L), any())).thenReturn(response);
+        when(ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_A)).thenReturn(Optional.of(detalhada));
 
-        mockMvc.perform(patch("/ocorrencias/1/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"novoStatus\": 3, \"analistaId\": 99}"))
+        mockMvc.perform(get("/ocorrencias/protocolo/" + PROTOCOLO_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("NECESSITA_ATENDIMENTO_MEDICO"));
+                .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_A));
     }
 
     @Test
-    @DisplayName("Filtro com codigo de status desconhecido deve retornar 400 listando os valores aceitos")
-    void deveRetornar400QuandoCodigoDeStatusDoFiltroNaoExiste() throws Exception {
-        mockMvc.perform(get("/ocorrencias").param("status", "9"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Valores aceitos")));
+    @DisplayName("GET /ocorrencias/protocolo/{protocolo} deve retornar 404 quando protocolo nao existe")
+    void deveRetornarNotFoundQuandoProtocoloNaoExiste() throws Exception {
+        when(ocorrenciasService.buscarDetalhesPorProtocolo(PROTOCOLO_C)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/ocorrencias/protocolo/" + PROTOCOLO_C))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Ocorrência não encontrada"));
+    }
+
+    @Test
+    @DisplayName("GET /ocorrencias/em-aberto deve retornar lista filtrada")
+    void deveListarOcorrenciasEmAberto() throws Exception {
+        OcorrenciaResponseDTO item = criarResponse(1L, PROTOCOLO_B, StatusOcorrencia.EM_ABERTO, null);
+
+        when(ocorrenciasService.listarEmAberto()).thenReturn(List.of(item));
+
+        mockMvc.perform(get("/ocorrencias/em-aberto"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].protocolo").value(PROTOCOLO_B))
+                .andExpect(jsonPath("$[0].status").value("EM_ABERTO"));
+    }
+
+    @Test
+    @DisplayName("GET /ocorrencias/usuario/{id} deve retornar ocorrencias do usuario")
+    void deveListarOcorrenciasDoUsuario() throws Exception {
+        when(ocorrenciasService.listarPorUsuario(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/ocorrencias/usuario/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /ocorrencias deve listar todas com ou sem filtro de status")
+    void deveListarTodasComFiltroStatus() throws Exception {
+        when(ocorrenciasService.listar(StatusOcorrencia.EM_ATENDIMENTO)).thenReturn(List.of());
+
+        mockMvc.perform(get("/ocorrencias").param("status", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 }

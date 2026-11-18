@@ -21,7 +21,7 @@ class UsuariosClientTest {
 
     private final RestClient.Builder builder = RestClient.builder();
     private final MockRestServiceServer servidor = MockRestServiceServer.bindTo(builder).build();
-    private final UsuariosClient client = new UsuariosClient(builder);
+    private final UsuariosClient client = new UsuariosClient("http://usuarios-service", builder);
 
     @Test
     @DisplayName("Chama o usuarios-service pelo nome do Eureka e devolve os destinatarios")

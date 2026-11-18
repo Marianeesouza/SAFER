@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import ufrpe.br.safer.ocorrencias.exception.AcessoNegadoException;
+import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaJaAssumidaException;
 import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
-import ufrpe.br.safer.ocorrencias.exception.BusinessRuleException;
+import ufrpe.br.safer.ocorrencias.exception.ServicoIndisponivelException;
 import ufrpe.br.safer.ocorrencias.exception.TransicaoStatusInvalidaException;
 
 import java.net.URI;
@@ -48,6 +50,16 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ProblemDetail handleBusinessRule(BusinessRuleException e) {
         return problema(HttpStatus.BAD_REQUEST, "Regra de negócio violada", "bad-request", e.getMessage());
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ProblemDetail handleAcessoNegado(AcessoNegadoException e) {
+        return problema(HttpStatus.FORBIDDEN, "Acesso proibido", "forbidden", e.getMessage());
+    }
+
+    @ExceptionHandler(ServicoIndisponivelException.class)
+    public ProblemDetail handleServicoIndisponivel(ServicoIndisponivelException e) {
+        return problema(HttpStatus.SERVICE_UNAVAILABLE, "Serviço indisponível", "service-unavailable", e.getMessage());
     }
 
     @Override
