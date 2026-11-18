@@ -12,7 +12,7 @@ x-banco: &banco
     POSTGRES_USER: safer
     POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
   healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U safer"]
+    test: ["CMD-SHELL", "pg_isready -U safer -d $$POSTGRES_DB"]
     interval: 5s
     timeout: 3s
     retries: 10
