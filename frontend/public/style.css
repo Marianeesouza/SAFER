@@ -324,6 +324,17 @@ body {
   color: var(--text);
 }
 
+.grid-2 label {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.label-title {
+  display: block;
+  white-space: nowrap;
+}
+
 input, select, textarea {
   width: 100%;
   padding: 10px 12px;
