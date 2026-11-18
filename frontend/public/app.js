@@ -937,12 +937,12 @@ function abrirModalNovoUsuario() {
       </label>
       <div class="grid-2">
         <label>
-          Celular (opcional)
-          <input type="text" id="novo-u-celular" maxlength="20" />
+          Celular
+          <input type="text" id="novo-u-celular" required maxlength="20" placeholder="(81) 99999-9999" />
         </label>
         <label>
           Telefone fixo (opcional)
-          <input type="text" id="novo-u-fixo" maxlength="20" />
+          <input type="text" id="novo-u-fixo" maxlength="20" placeholder="(81) 3320-0000" />
         </label>
       </div>
       <label>

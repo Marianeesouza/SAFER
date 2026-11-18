@@ -30,6 +30,7 @@ public record CadastrarUsuarioDTO(
         @Size(max = 20, message = "Telefone fixo deve ter no máximo 20 caracteres")
         String telefoneFixo,
 
+        @NotBlank(message = "Celular é obrigatório")
         @Size(max = 20, message = "Celular deve ter no máximo 20 caracteres")
         String celular
 ) {

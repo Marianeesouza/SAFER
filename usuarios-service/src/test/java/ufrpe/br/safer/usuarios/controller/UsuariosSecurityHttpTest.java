@@ -129,7 +129,7 @@ class UsuariosSecurityHttpTest {
 
         mockMvc.perform(post("/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Visitante\",\"email\":\"vis@ufrpe.br\",\"senha\":\"SenhaForte@123\",\"relacaoUfrpe\":\"VISITANTE\"}"))
+                        .content("{\"nome\":\"Visitante\",\"email\":\"vis@ufrpe.br\",\"senha\":\"SenhaForte@123\",\"relacaoUfrpe\":\"VISITANTE\",\"celular\":\"81999999999\"}"))
                 .andExpect(status().isCreated());
     }
 }

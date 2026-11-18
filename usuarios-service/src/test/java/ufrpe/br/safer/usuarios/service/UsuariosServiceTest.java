@@ -105,7 +105,7 @@ class UsuariosServiceTest {
                 "SenhaForte@123",
                 RelacaoUfrpe.DISCENTE,
                 null,
-                null
+                "81999999999"
         );
 
         when(usuarioRepository.existsByLoginEmail("duplicado@ufrpe.br")).thenReturn(true);
