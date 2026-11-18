@@ -18,6 +18,14 @@ spring:
 server:
   port: 8082
 
+jwt:
+  secret: ${JWT_SECRET:super-secret-key-safer-ufrpe-development-environment-2024}
+
+safer:
+  services:
+    geocodificacao-url: ${GEOCODING_URL:http://localhost:8083}
+    usuarios-url: ${USUARIOS_SERVICE_URL:http://usuarios-service}
+
 eureka:
   client:
     service-url:
