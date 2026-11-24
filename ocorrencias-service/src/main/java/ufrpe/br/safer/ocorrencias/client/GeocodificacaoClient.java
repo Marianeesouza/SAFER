@@ -11,8 +11,9 @@ import ufrpe.br.safer.ocorrencias.dto.CampusValidationResponseDTO;
 @Slf4j
 public class GeocodificacaoClient {
 
-    // Nome do serviço no Eureka (spring.application.name do geocodificacao-service).
-    private static final String BASE_URL = "http://geocodificacao-service";
+    // Nome lógico no Eureka (spring.application.name do geocodificacao-service): o endereço real e a
+    // escolha da instância ficam a cargo do Eureka + Spring Cloud LoadBalancer.
+    private static final String BASE_URL = "lb://geocodificacao-service";
 
     private final RestClient restClient;
 

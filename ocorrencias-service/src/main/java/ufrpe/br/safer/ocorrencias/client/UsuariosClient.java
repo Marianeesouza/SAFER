@@ -1,7 +1,6 @@
 package ufrpe.br.safer.ocorrencias.client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -22,15 +21,14 @@ import java.util.List;
 @Slf4j
 public class UsuariosClient {
 
+    // Nome lógico no Eureka (spring.application.name do usuarios-service): o endereço real e a
+    // escolha da instância ficam a cargo do Eureka + Spring Cloud LoadBalancer.
+    private static final String BASE_URL = "lb://usuarios-service";
+
     private final RestClient restClient;
 
-    public UsuariosClient(
-            @Value("${safer.services.usuarios-url:http://usuarios-service}") String baseUrl,
-            @LoadBalanced RestClient.Builder builder
-    ) {
-        this.restClient = builder
-                .baseUrl(baseUrl)
-                .build();
+    public UsuariosClient(@LoadBalanced RestClient.Builder builder) {
+        this.restClient = builder.baseUrl(BASE_URL).build();
     }
 
     public List<DestinatarioDTO> listarDestinatariosDeNovasOcorrencias() {

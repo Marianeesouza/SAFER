@@ -21,10 +21,6 @@ server:
 jwt:
   secret: ${JWT_SECRET}
 
-safer:
-  services:
-    usuarios-url: ${USUARIOS_SERVICE_URL:http://usuarios-service}
-
 eureka:
   client:
     service-url:

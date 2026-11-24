@@ -22,7 +22,7 @@ class GeocodificacaoClientTest {
     @Test
     @DisplayName("Chama o servico pelo nome do Eureka e devolve o resultado da validacao")
     void chamaOServicoPeloNome() {
-        servidor.expect(requestTo("http://geocodificacao-service/geocoding/campus/validate?latitude=-8.0163&longitude=-34.9501"))
+        servidor.expect(requestTo("lb://geocodificacao-service/geocoding/campus/validate?latitude=-8.0163&longitude=-34.9501"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess("{\"insideCampus\":false}", MediaType.APPLICATION_JSON));
 
@@ -34,7 +34,7 @@ class GeocodificacaoClientTest {
     @Test
     @DisplayName("Se a geocodificacao falhar, segue sem a checagem do campus")
     void falhaDoServicoNaoBloqueiaORegistro() {
-        servidor.expect(requestTo("http://geocodificacao-service/geocoding/campus/validate?latitude=-8.0&longitude=-34.0"))
+        servidor.expect(requestTo("lb://geocodificacao-service/geocoding/campus/validate?latitude=-8.0&longitude=-34.0"))
                 .andRespond(withServerError());
 
         assertThat(client.validarPontoNoCampus(-8.0, -34.0)).isTrue();
