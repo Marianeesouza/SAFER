@@ -18,8 +18,8 @@ Todos se registram no discovery-server (Eureka) :8761. O ocorrencias consulta o 
 dos avisos) e a geocodificação (ponto dentro do campus) por HTTP, pelo Eureka.
 ```
 
-Só o Nginx (5500), o gateway (8080), o Eureka (8761), o RabbitMQ (5672/15672), o MailHog (1025/8025) e os bancos
-(5433 a 5436, para uso pela IDE) publicam porta no host. Os serviços de negócio só se alcançam pelo gateway.
+Só o Nginx (5500), o RabbitMQ (5672/15672), o MailHog (1025/8025) e os bancos
+(5433 a 5436, para uso pela IDE) publicam porta no host. O gateway, o Eureka e os serviços de negócio não publicam porta: só se alcançam dentro da rede do compose (o gateway, via Nginx).
 
 ## Como rodar
 
@@ -66,7 +66,6 @@ Eureka; nesse intervalo o gateway pode responder 500.
 | O quê | Endereço |
 |---|---|
 | Aplicação | http://localhost:5500 |
-| Eureka | http://localhost:8761 |
 | E-mails enviados (MailHog) | http://localhost:8025 |
 | RabbitMQ | http://localhost:15672 (usuário e senha do `.env`) |
 
@@ -101,12 +100,12 @@ Cadastro de usuário: senha com no mínimo 10 caracteres, com maiúscula, minús
 
 ## API
 
-Entra-se por `http://localhost:8080/api/...` (gateway) ou `http://localhost:5500/api/...` (Nginx), com prefixos
+Entra-se por `http://localhost:5500/api/...` (Nginx, que repassa ao gateway), com prefixos
 `/api/auth` e `/api/usuarios`, `/api/ocorrencias` e `/api/geocoding`. Rotas protegidas exigem
 `Authorization: Bearer <token>` (o `tokenSessao` do login, válido por 24 h):
 
 ```bash
-curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" \
+curl -s -X POST http://localhost:5500/api/auth/login -H "Content-Type: application/json" \
   -d '{"email":"SEU_ADMIN_EMAIL","senha":"SUA_ADMIN_SENHA"}'
 ```
 

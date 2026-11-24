@@ -81,12 +81,10 @@ services:
   # ---------- Infraestrutura da arquitetura ----------
   discovery-server:
     build: { context: ., args: { MODULE: discovery-server } }
-    ports: ["8761:8761"]
 
   api-gateway:
     build: { context: ., args: { MODULE: api-gateway } }
     <<: *servico
-    ports: ["8080:8080"]
     depends_on: [discovery-server]
 
   # ---------- Serviços de negócio ----------
