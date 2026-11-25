@@ -14,7 +14,7 @@ em Nginx. Cada serviço tem banco e imagem próprios e **nenhum módulo depende 
 Navegador ─► Nginx :5500 ─► api-gateway :8080 ─┬─► usuarios-service :8081
                                                ├─► ocorrencias-service :8082 ──RabbitMQ──► notificacoes-service :8084 ─► SMTP
                                                └─► geocodificacao-service :8083
-Todos se registram no discovery-server (Eureka) :8761. O ocorrencias consulta o usuarios (permissões, destinatários
+Todos se registram no discovery-server (Eureka) :8761. O gateway valida o token JWT de cada chamada (veja Segurança). O ocorrencias consulta o usuarios (permissões, destinatários
 dos avisos) e a geocodificação (ponto dentro do campus) por HTTP, pelo Eureka.
 ```
 
@@ -45,7 +45,7 @@ cp .env.example .env
 |---|---|
 | `DB_PASSWORD` | Senha dos bancos Postgres (usuário `safer`) |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | Acesso ao RabbitMQ e ao painel |
-| `JWT_SECRET` | Chave dos tokens de login, **mínimo 32 caracteres** (ex.: `openssl rand -base64 48`) |
+| `JWT_SECRET` | Chave dos tokens de login (o usuarios assina, o gateway valida), **mínimo 32 caracteres** (ex.: `openssl rand -base64 48`) |
 | `ADMIN_EMAIL`, `ADMIN_SENHA` | Primeiro administrador, criado ao subir |
 
 O `.env` está no `.gitignore`: nunca o commite.
@@ -126,8 +126,8 @@ docker compose up usuarios-db ocorrencias-db notificacoes-db geocodificacao-db r
 ./gradlew :discovery-server:bootRun
 ```
 
-Exporte no ambiente de cada serviço as variáveis do `.env` que ele usa (`DB_PASSWORD`, `JWT_SECRET`,
-`ADMIN_EMAIL`, `ADMIN_SENHA`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`). Os padrões de `localhost` já apontam para o
+Exporte no ambiente de cada serviço as variáveis do `.env` que ele usa (`DB_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_SENHA`,
+`RABBITMQ_USER`, `RABBITMQ_PASSWORD`; `JWT_SECRET` só no usuarios e no api-gateway). Os padrões de `localhost` já apontam para o
 compose.
 
 **Swagger** vem desligado. Rodando o serviço pela IDE com `SWAGGER_ENABLED=true`, ele fica em
@@ -139,7 +139,16 @@ Estrutura: um módulo por serviço (`usuarios-service`, `ocorrencias-service`, `
 
 ## Segurança
 
-- `JWT_SECRET` é o mesmo no usuarios (que emite o token) e no ocorrencias (que o valida). O gateway só roteia.
+- **A autenticação acontece só no gateway.** O usuarios emite o token no login, e o gateway o valida (assinatura e
+  validade) antes de rotear. `JWT_SECRET` é o mesmo nos dois; os demais serviços não o conhecem.
+- Rotas públicas (sem token): `POST /api/auth/login`, `POST /api/usuarios` (cadastro), `POST /api/ocorrencias`,
+  `GET /api/ocorrencias/protocolo/**` e `GET /api/geocoding/**`. Qualquer outra rota sem token válido recebe `401`
+  direto do gateway.
+- Com o token válido, o gateway repassa a identidade nos cabeçalhos `X-User-Id`, `X-User-Email`, `X-User-Nome` e
+  `X-User-Cargo`, e o token não segue adiante. Cabeçalhos `X-User-*` enviados pelo cliente são descartados. As
+  regras por cargo continuam em cada serviço, a partir desses cabeçalhos.
+- Esse modelo só é seguro porque os serviços de negócio não publicam porta: qualquer um que alcançasse um serviço
+  direto poderia forjar os cabeçalhos. Não publique as portas deles.
 - A rota `/internal/...` do usuarios não exige token: ela só é segura porque o gateway não a roteia e o serviço
   não publica porta.
 

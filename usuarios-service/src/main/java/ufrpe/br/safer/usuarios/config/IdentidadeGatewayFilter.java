@@ -1,12 +1,9 @@
 package ufrpe.br.safer.usuarios.config;
 
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,14 +12,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
+/**
+ * Monta a autenticação a partir da identidade que o API Gateway já verificou.
+ *
+ * <p>Este serviço emite o token JWT no login, mas não o valida: o gateway valida o token, descarta qualquer
+ * {@code X-User-*} enviado pelo cliente e define os cabeçalhos abaixo. Isso só é seguro porque o serviço não
+ * publica porta, de modo que todo acesso externo passa pelo gateway.</p>
+ */
 @Component
-@RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class IdentidadeGatewayFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    public static final String HEADER_USER_EMAIL = "X-User-Email";
+    public static final String HEADER_USER_CARGO = "X-User-Cargo";
 
     @Override
     protected void doFilterInternal(
@@ -30,30 +33,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String email = request.getHeader(HEADER_USER_EMAIL);
+        String cargo = request.getHeader(HEADER_USER_CARGO);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = authHeader.substring(7).trim();
-        if (jwtService.tokenValido(token)) {
-            Claims claims = jwtService.extrairClaims(token);
-            String email = claims.getSubject();
-            String cargo = claims.get("cargo", String.class);
-
-            List<SimpleGrantedAuthority> authorities = cargo != null
-                    ? List.of(new SimpleGrantedAuthority("ROLE_" + cargo))
-                    : Collections.emptyList();
-
+        if (email != null && !email.isBlank() && cargo != null && !cargo.isBlank()
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     email,
                     null,
-                    authorities
+                    List.of(new SimpleGrantedAuthority("ROLE_" + cargo.trim().toUpperCase()))
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 

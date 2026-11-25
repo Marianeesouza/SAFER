@@ -12,7 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import ufrpe.br.safer.ocorrencias.security.JwtAuthenticationFilter;
+import ufrpe.br.safer.ocorrencias.security.IdentidadeGatewayFilter;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -22,7 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final IdentidadeGatewayFilter identidadeGatewayFilter;
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -75,7 +75,7 @@ public class SecurityConfig {
                             response.getWriter().write(objectMapper.writeValueAsString(body));
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(identidadeGatewayFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }

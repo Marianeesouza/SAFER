@@ -3,7 +3,6 @@ package ufrpe.br.safer.ocorrencias.client;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -14,7 +13,11 @@ import ufrpe.br.safer.ocorrencias.client.dto.ValidarPermissaoDTO;
 import ufrpe.br.safer.ocorrencias.dto.DestinatarioDTO;
 import ufrpe.br.safer.ocorrencias.exception.AcessoNegadoException;
 import ufrpe.br.safer.ocorrencias.exception.ServicoIndisponivelException;
+import ufrpe.br.safer.ocorrencias.security.IdentidadeGatewayFilter;
+import ufrpe.br.safer.ocorrencias.security.UsuarioAutenticado;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Component
@@ -49,14 +52,18 @@ public class UsuariosClient {
             TipoAcaoOcorrencia acao,
             Long criadorId,
             Long analistaId,
-            String tokenBearer
+            UsuarioAutenticado solicitante
     ) {
         ValidarPermissaoDTO dto = new ValidarPermissaoDTO(acao, criadorId, analistaId);
 
         try {
             PermissaoResponseDTO resposta = restClient.post()
                     .uri("/usuarios/{id}/permissoes/validar", usuarioId)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenBearer)
+                    // Chamada direta entre serviços (sem gateway): repassa a identidade já verificada pelo gateway.
+                    .header(IdentidadeGatewayFilter.HEADER_USER_ID, String.valueOf(solicitante.id()))
+                    .header(IdentidadeGatewayFilter.HEADER_USER_EMAIL, String.valueOf(solicitante.email()))
+                    .header(IdentidadeGatewayFilter.HEADER_USER_NOME, URLEncoder.encode(String.valueOf(solicitante.nome()), StandardCharsets.UTF_8))
+                    .header(IdentidadeGatewayFilter.HEADER_USER_CARGO, solicitante.cargo())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(dto)
                     .retrieve()
