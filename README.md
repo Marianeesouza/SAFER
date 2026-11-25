@@ -19,7 +19,7 @@ dos avisos) e a geocodificação (ponto dentro do campus) por HTTP, pelo Eureka.
 ```
 
 Só o Nginx (5500), o RabbitMQ (5672/15672), o MailHog (1025/8025) e os bancos
-(5433 a 5436, para uso pela IDE) publicam porta no host. O gateway, o Eureka e os serviços de negócio não publicam porta: só se alcançam dentro da rede do compose (o gateway, via Nginx).
+(5433 a 5436, para uso pela IDE, só acessíveis em `localhost`) publicam porta no host. O gateway, o Eureka e os serviços de negócio não publicam porta: só se alcançam dentro da rede do compose (o gateway, via Nginx).
 
 ## Como rodar
 
