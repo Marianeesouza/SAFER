@@ -127,7 +127,6 @@ public class OcorrenciasService {
     @Transactional
     public OcorrenciaResponseDTO vincularAnalista(Long id) {
         UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
-        String token = obterTokenAtual();
 
         Ocorrencia ocorrencia = buscarComBloqueio(id);
 
@@ -141,7 +140,7 @@ public class OcorrenciasService {
                 TipoAcaoOcorrencia.ASSUMIR,
                 ocorrencia.getUsuarioId(),
                 ocorrencia.getAnalistaResponsavelId(),
-                token
+                usuario
         );
 
         LocalDateTime agora = LocalDateTime.now();
@@ -171,7 +170,6 @@ public class OcorrenciasService {
     @Transactional
     public OcorrenciaResponseDTO atualizarStatus(Long id, AtualizarStatusDTO dto) {
         UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
-        String token = obterTokenAtual();
 
         StatusOcorrencia novoStatus = StatusOcorrencia.deCodigo(dto.novoStatus());
         Ocorrencia ocorrencia = buscarComBloqueio(id);
@@ -195,7 +193,7 @@ public class OcorrenciasService {
                 TipoAcaoOcorrencia.ATUALIZAR,
                 ocorrencia.getUsuarioId(),
                 ocorrencia.getAnalistaResponsavelId(),
-                token
+                usuario
         );
 
         LocalDateTime agora = LocalDateTime.now();
@@ -226,7 +224,6 @@ public class OcorrenciasService {
     @Transactional
     public OcorrenciaResponseDTO cancelarOcorrencia(Long id, CancelarOcorrenciaDTO dto) {
         UsuarioAutenticado usuario = obterUsuarioAutenticadoObrigatorio();
-        String token = obterTokenAtual();
 
         Ocorrencia ocorrencia = buscarComBloqueio(id);
 
@@ -242,7 +239,7 @@ public class OcorrenciasService {
                 TipoAcaoOcorrencia.CANCELAR,
                 ocorrencia.getUsuarioId(),
                 ocorrencia.getAnalistaResponsavelId(),
-                token
+                usuario
         );
 
         LocalDateTime agora = LocalDateTime.now();
@@ -330,13 +327,6 @@ public class OcorrenciasService {
         return null;
     }
 
-    private String obterTokenAtual() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getCredentials() instanceof String token) {
-            return token;
-        }
-        return "";
-    }
 
     private String gerarProtocoloUnico() {
         String dataPrefixo = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));

@@ -89,7 +89,7 @@ class OcorrenciasServiceTest {
 
     private void mockAutenticado(Long id, String cargo) {
         UsuarioAutenticado user = new UsuarioAutenticado(id, "user@ufrpe.br", "User", cargo);
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, "dummy-token", List.of());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
@@ -158,7 +158,7 @@ class OcorrenciasServiceTest {
 
         Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
-        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ASSUMIR), eq(5L), eq(null), eq("dummy-token"));
+        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ASSUMIR), eq(5L), eq(null), any(UsuarioAutenticado.class));
 
         OcorrenciaResponseDTO response = ocorrenciasService.vincularAnalista(1L);
 
@@ -192,7 +192,7 @@ class OcorrenciasServiceTest {
         o.setAnalistaResponsavelId(99L);
 
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
-        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ATUALIZAR), eq(5L), eq(99L), eq("dummy-token"));
+        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ATUALIZAR), eq(5L), eq(99L), any(UsuarioAutenticado.class));
 
         AtualizarStatusDTO dto = new AtualizarStatusDTO(
                 StatusOcorrencia.NECESSITA_ATENDIMENTO_MEDICO.getCodigo(),
@@ -214,7 +214,7 @@ class OcorrenciasServiceTest {
         CancelarOcorrenciaDTO dto = new CancelarOcorrenciaDTO("Animal fugiu.");
 
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
-        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(5L), eq(TipoAcaoOcorrencia.CANCELAR), eq(5L), eq(null), eq("dummy-token"));
+        doNothing().when(usuariosClient).validarPermissaoOuFalhar(eq(5L), eq(TipoAcaoOcorrencia.CANCELAR), eq(5L), eq(null), any(UsuarioAutenticado.class));
 
         OcorrenciaResponseDTO response = ocorrenciasService.cancelarOcorrencia(1L, dto);
 
@@ -403,7 +403,7 @@ class OcorrenciasServiceTest {
         Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
         doThrow(new AcessoNegadoException("O cargo do usuário não permite assumir ocorrências."))
-                .when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ASSUMIR), eq(5L), eq(null), eq("dummy-token"));
+                .when(usuariosClient).validarPermissaoOuFalhar(eq(99L), eq(TipoAcaoOcorrencia.ASSUMIR), eq(5L), eq(null), any(UsuarioAutenticado.class));
 
         assertThatThrownBy(() -> ocorrenciasService.vincularAnalista(1L))
                 .isInstanceOf(AcessoNegadoException.class);
@@ -420,7 +420,7 @@ class OcorrenciasServiceTest {
         Ocorrencia o = criarOcorrenciaMock(1L, PROTOCOLO_1, StatusOcorrencia.EM_ABERTO, 5L);
         when(ocorrenciaRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(o));
         doThrow(new ServicoIndisponivelException("indisponível"))
-                .when(usuariosClient).validarPermissaoOuFalhar(eq(5L), eq(TipoAcaoOcorrencia.CANCELAR), eq(5L), eq(null), eq("dummy-token"));
+                .when(usuariosClient).validarPermissaoOuFalhar(eq(5L), eq(TipoAcaoOcorrencia.CANCELAR), eq(5L), eq(null), any(UsuarioAutenticado.class));
 
         assertThatThrownBy(() -> ocorrenciasService.cancelarOcorrencia(1L, new CancelarOcorrenciaDTO("Desisti")))
                 .isInstanceOf(ServicoIndisponivelException.class);

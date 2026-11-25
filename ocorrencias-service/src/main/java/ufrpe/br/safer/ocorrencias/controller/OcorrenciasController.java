@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.util.UriComponentsBuilder;
 import ufrpe.br.safer.ocorrencias.dto.AtualizarStatusDTO;
 import ufrpe.br.safer.ocorrencias.dto.CancelarOcorrenciaDTO;
 import ufrpe.br.safer.ocorrencias.dto.OcorrenciaDetalhadaDTO;
@@ -26,7 +26,6 @@ import ufrpe.br.safer.ocorrencias.exception.OcorrenciaNaoEncontradaException;
 import ufrpe.br.safer.ocorrencias.model.StatusOcorrencia;
 import ufrpe.br.safer.ocorrencias.service.OcorrenciasService;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -44,12 +43,10 @@ public class OcorrenciasController {
             @ApiResponse(responseCode = "400", description = "Dados inválidos ou fora do campus")
     })
     public ResponseEntity<OcorrenciaResponseDTO> registrarOcorrencia(
-            @Valid @RequestBody RegistrarOcorrenciaDTO dto,
-            UriComponentsBuilder uriBuilder
+            @Valid @RequestBody RegistrarOcorrenciaDTO dto
     ) {
-        OcorrenciaResponseDTO criada = ocorrenciasService.registrarOcorrencia(dto);
-        URI uri = uriBuilder.path("/ocorrencias/{id}").buildAndExpand(criada.id()).toUri();
-        return ResponseEntity.created(uri).body(criada);
+        // Sem cabeçalho Location: ele carregaria o endereço interno da instância, que o cliente não deve conhecer.
+        return ResponseEntity.status(HttpStatus.CREATED).body(ocorrenciasService.registrarOcorrencia(dto));
     }
 
     @PostMapping("/{id}/vincular-analista")

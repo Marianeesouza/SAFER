@@ -17,11 +17,11 @@ import ufrpe.br.safer.ocorrencias.dto.DestinatarioDTO;
 
 class UsuariosClientTest {
 
-    private static final String URL = "http://usuarios-service/internal/usuarios/destinatarios-novas-ocorrencias";
+    private static final String URL = "lb://usuarios-service/internal/usuarios/destinatarios-novas-ocorrencias";
 
     private final RestClient.Builder builder = RestClient.builder();
     private final MockRestServiceServer servidor = MockRestServiceServer.bindTo(builder).build();
-    private final UsuariosClient client = new UsuariosClient("http://usuarios-service", builder);
+    private final UsuariosClient client = new UsuariosClient(builder);
 
     @Test
     @DisplayName("Chama o usuarios-service pelo nome do Eureka e devolve os destinatarios")

@@ -12,8 +12,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import ufrpe.br.safer.usuarios.config.JwtAuthenticationFilter;
-import ufrpe.br.safer.usuarios.config.JwtService;
+import ufrpe.br.safer.usuarios.config.IdentidadeGatewayFilter;
 import ufrpe.br.safer.usuarios.config.SecurityConfig;
 import ufrpe.br.safer.usuarios.dto.UsuarioResponseDTO;
 import ufrpe.br.safer.usuarios.exception.AcessoNegadoException;
@@ -40,16 +39,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UsuariosSecurityHttpTest {
 
     private final UsuariosService usuariosService = mock(UsuariosService.class);
-    private final JwtService jwtService = mock(JwtService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private MockMvc mockMvc;
-    private JwtAuthenticationFilter jwtFilter;
+    private IdentidadeGatewayFilter identidadeFilter;
 
     @BeforeEach
     void setup() {
         SecurityContextHolder.clearContext();
-        jwtFilter = new JwtAuthenticationFilter(jwtService);
+        identidadeFilter = new IdentidadeGatewayFilter();
         UsuariosController usuariosController = new UsuariosController(usuariosService);
         AuthController authController = new AuthController(usuariosService);
 
@@ -59,20 +57,15 @@ class UsuariosSecurityHttpTest {
     }
 
     @Test
-    @DisplayName("JwtAuthenticationFilter deve autenticar token válido com ROLE_<CARGO>")
-    void deveAutenticarTokenValidoComRole() throws Exception {
-        when(jwtService.tokenValido("token-valido")).thenReturn(true);
-        io.jsonwebtoken.Claims claims = mock(io.jsonwebtoken.Claims.class);
-        when(claims.getSubject()).thenReturn("admin@ufrpe.br");
-        when(claims.get("cargo", String.class)).thenReturn("ADMINISTRADOR");
-        when(jwtService.extrairClaims("token-valido")).thenReturn(claims);
-
+    @DisplayName("IdentidadeGatewayFilter deve autenticar com a identidade do gateway e ROLE_<CARGO>")
+    void deveAutenticarIdentidadeDoGatewayComRole() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer token-valido");
+        request.addHeader("X-User-Email", "admin@ufrpe.br");
+        request.addHeader("X-User-Cargo", "ADMINISTRADOR");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
-        jwtFilter.doFilter(request, response, chain);
+        identidadeFilter.doFilter(request, response, chain);
 
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
         assertEquals("admin@ufrpe.br", SecurityContextHolder.getContext().getAuthentication().getName());
@@ -80,13 +73,25 @@ class UsuariosSecurityHttpTest {
     }
 
     @Test
-    @DisplayName("JwtAuthenticationFilter não deve autenticar quando cabeçalho ausente")
+    @DisplayName("IdentidadeGatewayFilter não deve confiar em Authorization: o token é validado só no gateway")
+    void naoDeveAutenticarSoComBearer() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer qualquer-coisa");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        identidadeFilter.doFilter(request, response, new MockFilterChain());
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    @DisplayName("IdentidadeGatewayFilter não deve autenticar quando os cabeçalhos de identidade estão ausentes")
     void naoDeveAutenticarQuandoSemCabecalho() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
-        jwtFilter.doFilter(request, response, chain);
+        identidadeFilter.doFilter(request, response, chain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }

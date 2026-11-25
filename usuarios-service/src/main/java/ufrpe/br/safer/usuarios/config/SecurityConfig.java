@@ -19,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final IdentidadeGatewayFilter identidadeGatewayFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -62,7 +62,7 @@ public class SecurityConfig {
                         // Demais rotas exigem autenticação válida
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(identidadeGatewayFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }

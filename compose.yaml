@@ -30,7 +30,7 @@ services:
     environment:
       <<: *banco-env
       POSTGRES_DB: usuarios_db
-    ports: ["5433:5432"]
+    ports: ["127.0.0.1:5433:5432"]
     volumes: [usuarios-data:/var/lib/postgresql/data]
 
   ocorrencias-db:
@@ -38,7 +38,7 @@ services:
     environment:
       <<: *banco-env
       POSTGRES_DB: ocorrencias_db
-    ports: ["5434:5432"]
+    ports: ["127.0.0.1:5434:5432"]
     volumes: [ocorrencias-data:/var/lib/postgresql/data]
 
   notificacoes-db:
@@ -46,7 +46,7 @@ services:
     environment:
       <<: *banco-env
       POSTGRES_DB: notificacoes_db
-    ports: ["5435:5432"]
+    ports: ["127.0.0.1:5435:5432"]
     volumes: [notificacoes-data:/var/lib/postgresql/data]
 
   geocodificacao-db:
@@ -54,7 +54,7 @@ services:
     environment:
       <<: *banco-env
       POSTGRES_DB: geocodificacao_db
-    ports: ["5436:5432"]
+    ports: ["127.0.0.1:5436:5432"]
     volumes: [geocodificacao-data:/var/lib/postgresql/data]
 
   # ---------- Mensageria, e-mail de teste e geocodificação ----------
@@ -81,12 +81,13 @@ services:
   # ---------- Infraestrutura da arquitetura ----------
   discovery-server:
     build: { context: ., args: { MODULE: discovery-server } }
-    ports: ["8761:8761"]
 
   api-gateway:
     build: { context: ., args: { MODULE: api-gateway } }
-    <<: *servico
-    ports: ["8080:8080"]
+    environment:
+      <<: *servico-env
+      # O gateway é o único que valida o token JWT (o usuarios-service só o emite).
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
     depends_on: [discovery-server]
 
   # ---------- Serviços de negócio ----------
@@ -107,7 +108,6 @@ services:
     environment:
       <<: *servico-env
       DB_URL: jdbc:postgresql://ocorrencias-db:5432/ocorrencias_db
-      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}

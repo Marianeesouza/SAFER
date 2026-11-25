@@ -1,7 +1,5 @@
 package ufrpe.br.safer.usuarios.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,27 +38,6 @@ public class JwtService {
                 .expiration(expiracao)
                 .signWith(secretKey)
                 .compact();
-    }
-
-    public Claims extrairClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
-
-    public String extrairEmail(String token) {
-        return extrairClaims(token).getSubject();
-    }
-
-    public boolean tokenValido(String token) {
-        try {
-            Claims claims = extrairClaims(token);
-            return claims.getExpiration().after(new Date());
-        } catch (JwtException | IllegalArgumentException ex) {
-            return false;
-        }
     }
 
     public long getExpirationMs() {

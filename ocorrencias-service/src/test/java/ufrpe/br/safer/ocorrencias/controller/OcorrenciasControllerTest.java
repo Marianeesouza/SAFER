@@ -107,7 +107,7 @@ class OcorrenciasControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/ocorrencias/1"))
+                .andExpect(header().doesNotExist("Location"))
                 .andExpect(jsonPath("$.protocolo").value(PROTOCOLO_A))
                 .andExpect(jsonPath("$.status").value("EM_ABERTO"));
     }
